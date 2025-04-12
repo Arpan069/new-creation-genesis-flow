@@ -14,6 +14,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [transcript, setTranscript] = useState<Transcript[]>([]);
+  const [currentCodingQuestion, setCurrentCodingQuestion] = useState("");
+  const [showCodingChallenge, setShowCodingChallenge] = useState(false);
   
   // Interview questions
   const [questions] = useState([
@@ -24,6 +26,15 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     "Where do you see yourself professionally in five years?",
   ]);
 
+  // Coding questions
+  const [codingQuestions] = useState([
+    "Write a function that finds the longest substring without repeating characters in a given string.",
+    "Implement a function to check if a given string is a palindrome.",
+    "Create a function that reverses a linked list.",
+    "Write a function to find the missing number in an array of integers from 1 to n.",
+    "Implement a binary search algorithm to find a target value in a sorted array.",
+  ]);
+
   // Start the interview
   const startInterview = () => {
     setIsInterviewStarted(true);
@@ -31,6 +42,9 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     
     // Add initial AI question to transcript
     addToTranscript("AI Interviewer", questions[0]);
+    
+    // Set initial coding question but don't show it yet
+    setCurrentCodingQuestion(codingQuestions[0]);
     
     // Simulate AI speaking
     speakText(questions[0]);
@@ -91,6 +105,16 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       setTimeout(() => {
         addToTranscript("AI Interviewer", nextQuestion);
         speakText(nextQuestion);
+        
+        // After the third question, introduce coding challenge
+        if (currentIndex === 2) {
+          setTimeout(() => {
+            const codingIntro = "Now let's move on to a coding challenge. Please switch to the coding tab to solve the problem.";
+            addToTranscript("AI Interviewer", codingIntro);
+            speakText(codingIntro);
+            setShowCodingChallenge(true);
+          }, 1500);
+        }
       }, 1000);
     } else {
       // End of interview
@@ -114,6 +138,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     transcript,
     startInterview,
     endInterview,
-    simulateAnswer
+    simulateAnswer,
+    currentCodingQuestion,
+    showCodingChallenge
   };
 };

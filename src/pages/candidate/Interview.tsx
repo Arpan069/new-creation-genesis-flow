@@ -3,9 +3,9 @@ import React from "react";
 import { motion } from "framer-motion";
 import InterviewHeader from "@/components/interview/InterviewHeader";
 import InterviewAvatar from "@/components/interview/InterviewAvatar";
-import TranscriptSection from "@/components/interview/TranscriptSection";
 import VideoFeed from "@/components/interview/VideoFeed";
 import QuestionCard from "@/components/interview/QuestionCard";
+import InterviewTabs from "@/components/interview/InterviewTabs";
 import { useInterviewMedia } from "@/hooks/useInterviewMedia";
 import { useInterviewLogic } from "@/hooks/useInterviewLogic";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,8 @@ const InterviewPage = () => {
     transcript, 
     startInterview, 
     endInterview, 
-    simulateAnswer 
+    simulateAnswer,
+    currentCodingQuestion
   } = useInterviewLogic(isSystemAudioOn);
 
   return (
@@ -69,7 +70,7 @@ const InterviewPage = () => {
             />
           </motion.div>
           
-          {/* Right side - Video feed and transcript */}
+          {/* Right side - Video feed and tabs for transcript/coding */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -86,7 +87,10 @@ const InterviewPage = () => {
               toggleSystemAudio={toggleSystemAudio}
             />
             
-            <TranscriptSection transcript={transcript} />
+            <InterviewTabs 
+              transcript={transcript}
+              codingQuestion={currentCodingQuestion}
+            />
           </motion.div>
         </main>
       </div>
