@@ -1,13 +1,30 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, FileText, ExternalLink, Star } from "lucide-react";
+import { User, FileText, ExternalLink, Star, Calendar, Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
-// Mock data for candidate matches
 const mockCandidates = [
   {
     id: 1,
@@ -20,6 +37,7 @@ const mockCandidates = [
     source: "LinkedIn",
     profile: "https://linkedin.com/in/alexjohnson",
     education: "MSc Computer Science",
+    selected: false,
   },
   {
     id: 2,
@@ -32,6 +50,7 @@ const mockCandidates = [
     source: "Naukri.com",
     profile: "https://naukri.com/profiles/priyas",
     education: "BTech Information Technology",
+    selected: false,
   },
   {
     id: 3,
@@ -44,6 +63,7 @@ const mockCandidates = [
     source: "LinkedIn",
     profile: "https://linkedin.com/in/michaelchen",
     education: "BS Computer Science",
+    selected: false,
   },
   {
     id: 4,
@@ -56,11 +76,25 @@ const mockCandidates = [
     source: "Indeed",
     profile: "https://indeed.com/r/sarahwilson",
     education: "Self-taught, Bootcamp Graduate",
+    selected: false,
   },
 ];
 
 const CandidateMatchesSection = () => {
-  // Render match score badge with appropriate color
+  const [candidates, setCandidates] = useState(mockCandidates);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [currentCandidate, setCurrentCandidate] = useState<typeof mockCandidates[0] | null>(null);
+  const { toast } = useToast();
+  
+  const form = useForm({
+    defaultValues: {
+      date: "",
+      time: "",
+      duration: "",
+      position: "",
+    },
+  });
+
   const renderScore = (score: number, label: string) => {
     let colorClass = "";
     if (score >= 90) {
@@ -100,6 +134,28 @@ const CandidateMatchesSection = () => {
     );
   };
 
+  const handleScheduleInterview = (candidate: typeof mockCandidates[0]) => {
+    setCurrentCandidate(candidate);
+    setIsScheduleDialogOpen(true);
+  };
+
+  const toggleCandidateSelection = (id: number) => {
+    setCandidates(candidates.map(candidate => 
+      candidate.id === id 
+        ? { ...candidate, selected: !candidate.selected } 
+        : candidate
+    ));
+  };
+  
+  const onSubmitSchedule = form.handleSubmit((data) => {
+    toast({
+      title: "Interview Scheduled",
+      description: `Interview with ${currentCandidate?.name} scheduled for ${data.date} at ${data.time}`,
+    });
+    setIsScheduleDialogOpen(false);
+    form.reset();
+  });
+
   return (
     <Card className="glass-morphism">
       <CardHeader>
@@ -114,19 +170,27 @@ const CandidateMatchesSection = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">Select</TableHead>
                 <TableHead>Candidate</TableHead>
                 <TableHead>Match Score</TableHead>
                 <TableHead>CV Score</TableHead>
                 <TableHead>Skills</TableHead>
                 <TableHead>Experience</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCandidates.length > 0 ? (
-                mockCandidates.map((candidate) => (
+              {candidates.length > 0 ? (
+                candidates.map((candidate) => (
                   <TableRow key={candidate.id} className="hover:bg-muted/40">
+                    <TableCell className="text-center">
+                      <Checkbox 
+                        checked={candidate.selected}
+                        onCheckedChange={() => toggleCandidateSelection(candidate.id)}
+                        className="mr-2"
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Avatar className="h-8 w-8">
@@ -193,13 +257,21 @@ const CandidateMatchesSection = () => {
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleScheduleInterview(candidate)}
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
                     No candidate matches found yet. Upload a job description to find matches.
                   </TableCell>
                 </TableRow>
@@ -207,7 +279,109 @@ const CandidateMatchesSection = () => {
             </TableBody>
           </Table>
         </div>
+        
+        <div className="mt-4 flex justify-between">
+          <Button 
+            variant="outline"
+            disabled={!candidates.some(c => c.selected)}
+          >
+            <Check className="mr-2 h-4 w-4" />
+            Add Selected to Shortlist
+          </Button>
+          
+          <Button 
+            variant="default"
+            disabled={!candidates.some(c => c.selected)}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            Schedule Selected Interviews
+          </Button>
+        </div>
       </CardContent>
+      
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Schedule Interview</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={onSubmitSchedule} className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">Candidate: {currentCandidate?.name}</h3>
+                <p className="text-sm text-muted-foreground">{currentCandidate?.title}</p>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Interview Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Interview Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration (minutes)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="30" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="text" 
+                        placeholder="Position title" 
+                        defaultValue={currentCandidate?.title || ""}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Schedule Interview</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
