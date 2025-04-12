@@ -150,7 +150,6 @@ function toast(props: Toast): ToastReturn {
     type: actionTypes.ADD_TOAST,
     toast: {
       ...props,
-      id,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
@@ -159,7 +158,7 @@ function toast(props: Toast): ToastReturn {
   })
 
   return {
-    id: id,
+    id,
     dismiss,
     update,
   }
