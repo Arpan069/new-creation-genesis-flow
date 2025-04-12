@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, FileText, X } from "lucide-react";
+import { Upload, Loader2, FileText, X, Search, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const JobDescriptionUploadSection = () => {
@@ -146,7 +146,7 @@ const JobDescriptionUploadSection = () => {
         <div>
           <label className="block text-sm font-medium mb-1">Scan Sources</label>
           <div className="flex flex-wrap gap-2">
-            {["linkedin.com", "naukri.com", "indeed.com", "monster.com"].map((site) => (
+            {["linkedin.com", "naukri.com", "indeed.com", "monster.com", "glassdoor.com"].map((site) => (
               <Button
                 key={site}
                 variant={websites.includes(site) ? "default" : "outline"}
@@ -154,6 +154,7 @@ const JobDescriptionUploadSection = () => {
                 onClick={() => toggleWebsite(site)}
                 className="text-xs"
               >
+                <Globe className="h-3 w-3 mr-1" />
                 {site}
               </Button>
             ))}
@@ -172,7 +173,9 @@ const JobDescriptionUploadSection = () => {
               <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Scanning for Candidates...
             </>
           ) : (
-            <>Find Matching Candidates</>
+            <>
+              <Search className="h-4 w-4 mr-2" /> Find Matching Candidates
+            </>
           )}
         </Button>
       </CardFooter>

@@ -14,6 +14,7 @@ const mockCandidates = [
     name: "Alex Johnson",
     title: "Senior React Developer",
     matchScore: 94,
+    cvScore: 92,
     skills: ["React", "TypeScript", "Node.js", "AWS"],
     experience: "8 years",
     source: "LinkedIn",
@@ -25,6 +26,7 @@ const mockCandidates = [
     name: "Priya Sharma",
     title: "Frontend Engineer",
     matchScore: 88,
+    cvScore: 85,
     skills: ["React", "JavaScript", "CSS", "UI/UX"],
     experience: "5 years",
     source: "Naukri.com",
@@ -36,6 +38,7 @@ const mockCandidates = [
     name: "Michael Chen",
     title: "Full Stack Developer",
     matchScore: 82,
+    cvScore: 79,
     skills: ["React", "MongoDB", "Express", "Node.js"],
     experience: "6 years",
     source: "LinkedIn",
@@ -47,6 +50,7 @@ const mockCandidates = [
     name: "Sarah Wilson",
     title: "JavaScript Developer",
     matchScore: 76,
+    cvScore: 72,
     skills: ["JavaScript", "React", "Vue.js", "HTML/CSS"],
     experience: "4 years",
     source: "Indeed",
@@ -57,7 +61,7 @@ const mockCandidates = [
 
 const CandidateMatchesSection = () => {
   // Render match score badge with appropriate color
-  const renderMatchScore = (score: number) => {
+  const renderScore = (score: number, label: string) => {
     let colorClass = "";
     if (score >= 90) {
       colorClass = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
@@ -70,24 +74,27 @@ const CandidateMatchesSection = () => {
     }
 
     return (
-      <div className="flex items-center">
-        <Badge variant="outline" className={colorClass}>
-          {score}%
-        </Badge>
-        <div className="ml-2 flex">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <Star
-              key={star}
-              size={14}
-              className={`${
-                score >= star * 20
-                  ? "text-yellow-500 fill-yellow-500"
-                  : score >= star * 20 - 10
-                  ? "text-yellow-500 fill-yellow-500 opacity-50"
-                  : "text-gray-300"
-              }`}
-            />
-          ))}
+      <div className="flex flex-col items-start">
+        <span className="text-xs text-muted-foreground mb-1">{label}</span>
+        <div className="flex items-center">
+          <Badge variant="outline" className={colorClass}>
+            {score}%
+          </Badge>
+          <div className="ml-2 flex">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                size={14}
+                className={`${
+                  score >= star * 20
+                    ? "text-yellow-500 fill-yellow-500"
+                    : score >= star * 20 - 10
+                    ? "text-yellow-500 fill-yellow-500 opacity-50"
+                    : "text-gray-300"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -109,6 +116,7 @@ const CandidateMatchesSection = () => {
               <TableRow>
                 <TableHead>Candidate</TableHead>
                 <TableHead>Match Score</TableHead>
+                <TableHead>CV Score</TableHead>
                 <TableHead>Skills</TableHead>
                 <TableHead>Experience</TableHead>
                 <TableHead>Source</TableHead>
@@ -137,7 +145,8 @@ const CandidateMatchesSection = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{renderMatchScore(candidate.matchScore)}</TableCell>
+                    <TableCell>{renderScore(candidate.matchScore, "Job Match")}</TableCell>
+                    <TableCell>{renderScore(candidate.cvScore, "CV Quality")}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {candidate.skills.slice(0, 3).map((skill, idx) => (
@@ -190,7 +199,7 @@ const CandidateMatchesSection = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                     No candidate matches found yet. Upload a job description to find matches.
                   </TableCell>
                 </TableRow>

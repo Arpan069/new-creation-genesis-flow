@@ -128,14 +128,14 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-// Fix: Define proper return type for toast function
+// Define proper return type for toast function
 interface ToastReturn {
   id: string
   dismiss: () => void
   update: (props: ToasterToast) => void
 }
 
-function toast({ ...props }: Toast): ToastReturn {
+function toast(props: Toast): ToastReturn {
   const id = genId()
 
   const update = (props: ToasterToast) =>
