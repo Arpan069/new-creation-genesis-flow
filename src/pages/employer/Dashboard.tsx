@@ -11,6 +11,8 @@ import { useNavigate, Link } from "react-router-dom";
 import ConfigureInterviewSection from "@/components/employer/ConfigureInterviewSection";
 import InterviewsListSection from "@/components/employer/InterviewsListSection";
 import InterviewDetailSection from "@/components/employer/InterviewDetailSection";
+import JobDescriptionUploadSection from "@/components/employer/JobDescriptionUploadSection";
+import CandidateMatchesSection from "@/components/employer/CandidateMatchesSection";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const EmployerDashboard = () => {
@@ -76,19 +78,40 @@ const EmployerDashboard = () => {
         {/* Main content */}
         <main className="flex-1 pt-20 pb-6 px-4 md:px-6">
           <div className="container mx-auto space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <ConfigureInterviewSection />
-            </motion.div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* First row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <ConfigureInterviewSection />
+              </motion.div>
+              
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <JobDescriptionUploadSection />
+              </motion.div>
+            </div>
+            
+            {/* Second row */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <CandidateMatchesSection />
+            </motion.div>
+            
+            {/* Third row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
                 className="lg:col-span-1"
               >
                 <InterviewsListSection onSelectInterview={setSelectedInterviewId} />
@@ -97,7 +120,7 @@ const EmployerDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
                 className="lg:col-span-2"
               >
                 <InterviewDetailSection interviewId={selectedInterviewId} />
