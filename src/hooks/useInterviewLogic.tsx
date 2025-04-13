@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
 
 interface Transcript {
   speaker: string;
@@ -16,7 +15,6 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   const [transcript, setTranscript] = useState<Transcript[]>([]);
   const [currentCodingQuestion, setCurrentCodingQuestion] = useState("");
   const [showCodingChallenge, setShowCodingChallenge] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Interview questions
   const [questions] = useState([
@@ -53,22 +51,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
 
   // End the interview
   const endInterview = () => {
-    // Here you would normally send the transcript data to your backend
-    // for analysis and scoring
-    
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Interview complete",
-      description: "Thank you for participating in the interview.",
-    });
-    
+    // Navigate back to dashboard
     navigate("/candidate/dashboard");
-  };
-
-  // Toggle dialog state
-  const toggleDialog = () => {
-    setIsDialogOpen(!isDialogOpen);
   };
 
   // Add message to transcript
@@ -85,13 +69,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     if (!isSystemAudioOn) return;
     
     // Here you would normally integrate with a text-to-speech API
-    // For now, we'll just simulate the AI speaking with a timer
-    
-    toast({
-      title: "AI Speaking",
-      description: text.substring(0, 60) + (text.length > 60 ? "..." : ""),
-      duration: 3000,
-    });
+    // For now, we'll just simulate the AI speaking with a console log
+    console.log("AI Speaking:", text);
   };
 
   // Simulate candidate's answer and progress to next question
@@ -129,13 +108,6 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       setTimeout(() => {
         addToTranscript("AI Interviewer", "Thank you for your time. The interview is now complete.");
         speakText("Thank you for your time. The interview is now complete.");
-        
-        // Show end interview button
-        toast({
-          title: "Interview complete",
-          description: "All questions have been answered.",
-          duration: 5000,
-        });
       }, 1000);
     }
   };
@@ -144,10 +116,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     isInterviewStarted,
     currentQuestion,
     transcript,
-    isDialogOpen,
     startInterview,
     endInterview,
-    toggleDialog,
     simulateAnswer,
     currentCodingQuestion,
     showCodingChallenge

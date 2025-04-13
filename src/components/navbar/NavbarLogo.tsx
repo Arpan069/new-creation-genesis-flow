@@ -10,13 +10,10 @@ const NavbarLogo = () => {
   return (
     <Link to="/" className="flex items-center">
       <img 
-        src="https://interviewstaging.shiksak.com/storage/customimages/ai-interviewlogo.png" 
-        alt="Aura Interview AI" 
-        className="h-9 w-auto mr-2"
+        src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
+        alt="Vinte AI Interview" 
+        className="h-9 w-auto"
       />
-      <span className={`font-bold text-xl ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-        Aura AI
-      </span>
     </Link>
   );
 };

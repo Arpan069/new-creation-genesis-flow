@@ -2,7 +2,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, CameraOff, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 interface VideoControlsProps {
   isVideoOn: boolean;
