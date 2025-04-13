@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -182,515 +183,276 @@ const CandidateDashboard = () => {
                   <AvatarFallback>AJ</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 animate-in fade-in duration-300 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-primary/20 dark:border-white/10 shadow-lg">
-                <DropdownMenuItem className="cursor-default opacity-70">
-                  Signed in as <span className="font-semibold ml-1">alex.johnson@example.com</span>
+              <DropdownMenuContent align="end" className="w-56 animate-in fade-in duration-300">
+                <div className="p-3 border-b">
+                  <p className="font-medium">{profileData.name}</p>
+                  <p className="text-xs text-muted-foreground">{profileData.email}</p>
+                </div>
+                <DropdownMenuItem asChild>
+                  <Link to="/candidate/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer hover:bg-primary/10">
-                  <User className="h-4 w-4 mr-2" />Edit Profile
-                 </DropdownMenuItem>
-                {/*<DropdownMenuItem className="cursor-pointer hover:bg-primary/10">
-                  <Calendar className="h-4 w-4 mr-2" /> My Interviews
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer hover:bg-primary/10">
-                  <Video className="h-4 w-4 mr-2" /> Practice
-                </DropdownMenuItem>*/}
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500 hover:bg-red-500/10">
-                  <LogOut className="h-4 w-4 mr-2" /> Logout
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:bg-red-100 focus:text-red-600 dark:focus:bg-red-900/50">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
-            {isMobile && (
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={handleLogout}
-                className="md:hidden border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-600"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </div>
       </header>
-
-      <main className="container mx-auto pt-24 pb-16 px-4 md:px-6">
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="my-interviews" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Calendar className="mr-2 h-4 w-4" />
-              My Interviews
-            </TabsTrigger>
-            <TabsTrigger value="interview" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Video className="mr-2 h-4 w-4" />
-              Interview
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="profile" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="grid gap-6 md:grid-cols-2"
-            >
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-primary">
-                      <AvatarImage src="https://github.com/shadcn.png" />
-                      <AvatarFallback>AJ</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="text-2xl font-bold">{profileData.name}</h3>
-                      <p className="text-muted-foreground">{profileData.role}</p>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Contact Information</h4>
-                    <p className="text-sm">{profileData.email}</p>
-                    <p className="text-sm">{profileData.location}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-2">Bio</h4>
-                    <p className="text-sm">{profileData.bio}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold mb-2">Skills</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {profileData.skills.map((skill, index) => (
-                        <Badge key={index} className="bg-primary/20 text-primary hover:bg-primary/30 dark:bg-primary/30">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="space-y-6">
-                <Card className="card-hover">
-                  <CardHeader>
-                    <CardTitle>Experience</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {profileData.experience.map((exp, index) => (
-                      <motion.div 
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="border-l-2 border-primary pl-4"
-                      >
-                        <h4 className="font-semibold">{exp.title}</h4>
-                        <p className="text-sm text-muted-foreground">{exp.company}</p>
-                        <p className="text-sm text-muted-foreground">{exp.duration}</p>
-                      </motion.div>
-                    ))}
-                  </CardContent>
-                </Card>
+      
+      <main className="container mx-auto py-24 px-4 md:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Side Panel */}
+          <div className="space-y-6">
+            <Card className="relative overflow-hidden">
+              <CardHeader>
+                <CardTitle>Profile Completion</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Progress value={progress} className="h-2" />
+                <p className="text-sm">Complete your profile to improve your matches</p>
                 
-                <Card className="card-hover">
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    <p className="text-sm">Basic information</p>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    <p className="text-sm">Contact details</p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 border-2 border-gray-300 rounded-full mr-2" />
+                    <p className="text-sm">Resume upload</p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 border-2 border-gray-300 rounded-full mr-2" />
+                    <p className="text-sm">Skills assessment</p>
+                  </div>
+                </div>
+                
+                <Button className="w-full">Complete Profile</Button>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Practice Interviews</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm">Prepare for your next interview with our AI-powered practice sessions.</p>
+                <div className="space-y-3">
+                  {interviewRoles.slice(0, 4).map((role, index) => (
+                    <Button key={index} variant="outline" className="flex items-center justify-between w-full">
+                      <span>{role}</span>
+                      <PlayCircle className="h-4 w-4 ml-2" />
+                    </Button>
+                  ))}
+                </div>
+                <Link to="/candidate/interview">
+                  <Button className="w-full">
+                    <Video className="h-4 w-4 mr-2" />
+                    Start Practice Interview
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <Tabs defaultValue="upcoming" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="upcoming">Upcoming Interviews</TabsTrigger>
+                <TabsTrigger value="past">Past Interviews</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upcoming">
+                <Card>
                   <CardHeader>
-                    <CardTitle>Education</CardTitle>
+                    <CardTitle className="flex items-center">
+                      <Calendar className="h-5 w-5 mr-2" />
+                      Scheduled Interviews
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {profileData.education.map((edu, index) => (
-                      <motion.div 
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="border-l-2 border-primary pl-4"
-                      >
-                        <h4 className="font-semibold">{edu.degree}</h4>
-                        <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                        <p className="text-sm text-muted-foreground">{edu.year}</p>
-                      </motion.div>
-                    ))}
+                  <CardContent>
+                    {upcomingInterviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {upcomingInterviews.map((interview) => (
+                          <motion.div 
+                            key={interview.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="p-4 border rounded-lg hover:bg-accent hover:border-accent transition-colors"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-medium">{interview.role}</h3>
+                                <p className="text-sm text-muted-foreground">{interview.company}</p>
+                              </div>
+                              <Badge>{interview.status}</Badge>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                <span>{formatDate(interview.date)}</span>
+                              </div>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Clock className="h-4 w-4 mr-1" />
+                                <span>{interview.duration} minutes</span>
+                              </div>
+                            </div>
+                            <div className="mt-4 flex">
+                              <Button size="sm">Join Interview</Button>
+                              <Button variant="outline" size="sm" className="ml-2">Reschedule</Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                        <h3 className="text-lg font-medium mb-1">No Scheduled Interviews</h3>
+                        <p className="text-sm text-muted-foreground">
+                          You don't have any upcoming interviews scheduled.
+                        </p>
+                        <Button className="mt-4">Browse Job Opportunities</Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              </div>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>Your Progress</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">Profile Completion</div>
-                        <div className="text-sm font-medium">{progress}%</div>
-                      </div>
-                      <Progress value={progress} className="h-2" />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-6 flex items-center gap-4">
-                          <div className="rounded-full p-3 bg-primary/20">
-                            <Award className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium">Interviews Completed</div>
-                            <div className="text-2xl font-bold">{pastInterviews.length}</div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-6 flex items-center gap-4">
-                          <div className="rounded-full p-3 bg-primary/20">
-                            <Calendar className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium">Upcoming Interviews</div>
-                            <div className="text-2xl font-bold">{upcomingInterviews.length}</div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-6 flex items-center gap-4">
-                          <div className="rounded-full p-3 bg-primary/20">
-                            <BarChart className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium">Average Score</div>
-                            <div className="text-2xl font-bold">
-                              {pastInterviews.length > 0
-                                ? Math.round(
-                                    pastInterviews.reduce((acc, interview) => acc + (interview.score || 0), 0) /
-                                    pastInterviews.length
-                                  )
-                                : 0}%
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-          
-          <TabsContent value="my-interviews" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Calendar className="mr-2 h-5 w-5 text-primary" />
-                    Upcoming Interviews
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {upcomingInterviews.length > 0 ? (
-                    <div className="space-y-4">
-                      {upcomingInterviews.map((interview, index) => (
-                        <motion.div
-                          key={interview.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.1 }}
-                          className="flex justify-between items-center p-4 border rounded-lg hover:border-primary/50 transition-all"
-                        >
-                          <div className="space-y-1">
-                            <div className="font-semibold">{interview.role}</div>
-                            <div className="text-sm text-muted-foreground">{interview.company}</div>
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Clock className="mr-1 h-4 w-4" />
-                              {formatDate(interview.date)} ({interview.duration} min)
-                            </div>
-                          </div>
-                          <Button className="bg-primary hover:bg-primary/90">Join Interview</Button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No upcoming interviews scheduled.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CheckCircle className="mr-2 h-5 w-5 text-primary" />
-                    Past Interviews
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {pastInterviews.map((interview, index) => (
-                      <motion.div
-                        key={interview.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="flex justify-between items-center p-4 border rounded-lg hover:border-primary/50 transition-all"
-                      >
-                        <div className="space-y-1">
-                          <div className="font-semibold">{interview.role}</div>
-                          <div className="text-sm text-muted-foreground">{interview.company}</div>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Clock className="mr-1 h-4 w-4" />
-                            {formatDate(interview.date)} ({interview.duration} min)
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="text-sm font-medium">Score</div>
-                            <div className="text-xl font-bold">{interview.score}%</div>
-                          </div>
-                          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                            View Report
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-          
-          <TabsContent value="interview" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="grid gap-6 md:grid-cols-2"
-            >
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Video className="mr-2 h-5 w-5 text-primary" />
-                    Start a New Interview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Role</label>
-                    <select className="w-full p-2 border rounded-md bg-background">
-                      {interviewRoles.map((role, index) => (
-                        <option key={index} value={role}>{role}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Interview Steps:</h4>
-                    <ol className="space-y-3">
-                      <motion.li 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 }}
-                        className="flex items-center"
-                      >
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/20">
-                          <Award className="h-6 w-6 text-primary" />
-                        </div>
-                        <span>Select your desired role from the dropdown</span>
-                      </motion.li>
-                      
-                      <motion.li 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                        className="flex items-center"
-                      >
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/20">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                          </svg>
-                        </div>
-                        <span>Run the system check to ensure your camera and microphone are working</span>
-                      </motion.li>
-                      
-                      <motion.li 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.3 }}
-                        className="flex items-center"
-                      >
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/20">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                            <circle cx="12" cy="10" r="3"/>
-                          </svg>
-                        </div>
-                        <span>Click "Start Interview" to begin your AI interview session</span>
-                      </motion.li>
-                    </ol>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <Link to="/candidate/interview">
-                      <Button className="w-full bg-primary hover:bg-primary/90">
-                        <PlayCircle className="mr-2 h-4 w-4" />
-                        Start Interview
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              </TabsContent>
               
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>System Check</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                          <Video className="h-4 w-4 text-green-600" />
-                        </div>
-                        <span>Camera</span>
+              <TabsContent value="past">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BarChart className="h-5 w-5 mr-2" />
+                      Interview History & Performance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {pastInterviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {pastInterviews.map((interview) => (
+                          <motion.div 
+                            key={interview.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="p-4 border rounded-lg hover:bg-accent hover:border-accent transition-colors"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-medium">{interview.role}</h3>
+                                <p className="text-sm text-muted-foreground">{interview.company}</p>
+                              </div>
+                              <div className="flex items-center">
+                                <Badge variant={interview.score >= 80 ? "default" : "outline"}>
+                                  {interview.score}%
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                <span>{formatDate(interview.date)}</span>
+                              </div>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Clock className="h-4 w-4 mr-1" />
+                                <span>{interview.duration} minutes</span>
+                              </div>
+                            </div>
+                            <div className="mt-4">
+                              <div className="text-sm mb-1 flex justify-between">
+                                <span>Performance</span>
+                                <span className={interview.score >= 80 ? "text-green-600" : "text-amber-600"}>
+                                  {interview.score >= 90 ? "Excellent" : 
+                                   interview.score >= 80 ? "Good" : 
+                                   interview.score >= 70 ? "Average" : "Needs Improvement"}
+                                </span>
+                              </div>
+                              <Progress 
+                                value={interview.score} 
+                                className="h-2"
+                                style={{
+                                  background: 'var(--background-muted)',
+                                }}
+                              />
+                            </div>
+                            <div className="mt-4">
+                              <Button size="sm" variant="outline">
+                                <Video className="h-4 w-4 mr-1" />
+                                View Recording
+                              </Button>
+                              <Button size="sm" variant="outline" className="ml-2">
+                                <Award className="h-4 w-4 mr-1" />
+                                See Feedback
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
                       </div>
-                      <Badge variant="outline" className="bg-green-100 text-green-700 hover:bg-green-100">Working</Badge>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
-                            <path d="M12 16v-4"/>
-                            <path d="M12 8h.01"/>
-                          </svg>
-                        </div>
-                        <span>Microphone</span>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Award className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                        <h3 className="text-lg font-medium mb-1">No Past Interviews</h3>
+                        <p className="text-sm text-muted-foreground">
+                          You haven't completed any interviews yet.
+                        </p>
+                        <Button className="mt-4">Practice Interview</Button>
                       </div>
-                      <Badge variant="outline" className="bg-green-100 text-green-700 hover:bg-green-100">Working</Badge>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
-                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                            <circle cx="12" cy="10" r="3"/>
-                          </svg>
-                        </div>
-                        <span>Network Connection</span>
-                      </div>
-                      <Badge variant="outline" className="bg-green-100 text-green-700 hover:bg-green-100">Good (45ms)</Badge>
-                    </div>
-                  </div>
-                  
-                  <Button variant="outline" className="w-full">
-                    Run System Check Again
-                  </Button>
-                  
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <h4 className="font-medium mb-2 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400 mr-2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 16v-4"/>
-                        <path d="M12 8h.01"/>
-                      </svg>
-                      Tips for a Better Interview
-                    </h4>
-                    <ul className="text-sm space-y-2 text-blue-800 dark:text-blue-300">
-                      <li>Ensure you're in a quiet environment</li>
-                      <li>Use headphones for better audio quality</li>
-                      <li>Position yourself in good lighting</li>
-                      <li>Keep your camera at eye level</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
             
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>Recent Practice Sessions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border rounded-lg p-4 hover:border-primary transition-all">
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium">Frontend Developer Interview</div>
-                          <Badge>5 days ago</Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1 mb-3">Practice Session (15 min)</div>
-                        <div className="flex justify-between">
-                          <div className="text-sm">
-                            <span className="font-medium">Score:</span> 82%
-                          </div>
-                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="border rounded-lg p-4 hover:border-primary transition-all">
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium">React Developer Skills</div>
-                          <Badge>1 week ago</Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1 mb-3">Practice Session (10 min)</div>
-                        <div className="flex justify-between">
-                          <div className="text-sm">
-                            <span className="font-medium">Score:</span> 78%
-                          </div>
-                          <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-center mt-2">
-                      <Button variant="outline" className="text-primary border-primary hover:bg-primary/10">
-                        View All Practice Sessions
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-        </Tabs>
+            <Card>
+              <CardHeader>
+                <CardTitle>Job Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <Work className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                  <h3 className="text-lg font-medium mb-1">Coming Soon</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    We're working on analyzing your profile and interviews to recommend the perfect job opportunities for you.
+                  </p>
+                  <Button className="mt-4" variant="outline">Update Preferences</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
+  );
+};
+
+// Missing Work icon component
+const Work = (props) => {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+    </svg>
   );
 };
 
