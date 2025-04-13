@@ -1,6 +1,6 @@
 
 import React from "react";
-import { CheckCircle, PlayCircle } from "lucide-react";
+import { PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,32 +46,29 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span className="text-sm">Browser compatibility</span>
+                  <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
+                    Passed
+                  </Badge>
+                  <span className="text-sm ml-2">Browser compatibility</span>
                 </div>
-                <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                  Passed
-                </Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span className="text-sm">Internet speed</span>
+                  <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
+                    12 Mbps
+                  </Badge>
+                  <span className="text-sm ml-2">Internet speed</span>
                 </div>
-                <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                  12 Mbps
-                </Badge>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span className="text-sm">Screen resolution</span>
+                  <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
+                    Optimal
+                  </Badge>
+                  <span className="text-sm ml-2">Screen resolution</span>
                 </div>
-                <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                  Optimal
-                </Badge>
               </div>
               
               <Button className="w-full">Run Full System Check</Button>
@@ -82,14 +79,14 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
         {/* Interview Setup */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Practice Interview</CardTitle>
+            <CardTitle>Start Interview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <h3 className="text-base font-medium">Select Interview Role</h3>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a role to practice" />
+                  <SelectValue placeholder="Choose a role for your interview" />
                 </SelectTrigger>
                 <SelectContent>
                   {interviewRoles.map((role) => (
@@ -109,7 +106,7 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
                   <div>
                     <h4 className="text-sm font-medium">Select a role from the dropdown</h4>
                     <p className="text-xs text-muted-foreground">
-                      Choose the position you'd like to practice interviewing for
+                      Choose the position you're applying for
                     </p>
                   </div>
                 </div>
@@ -147,52 +144,6 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
                 <PlayCircle className="h-5 w-5" />
                 Start Interview
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Practice Resources */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Practice Resources</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Behavioral Questions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Learn how to effectively respond to questions about your work style and experiences.
-                  </p>
-                  <Button variant="outline" className="w-full">View Resources</Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Technical Preparation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Access role-specific technical questions and coding challenges.
-                  </p>
-                  <Button variant="outline" className="w-full">View Resources</Button>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Interview Tips</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Expert advice on body language, communication skills, and interview etiquette.
-                  </p>
-                  <Button variant="outline" className="w-full">View Resources</Button>
-                </CardContent>
-              </Card>
             </div>
           </CardContent>
         </Card>

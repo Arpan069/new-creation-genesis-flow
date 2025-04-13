@@ -7,14 +7,14 @@ import { XCircle } from "lucide-react";
 
 interface InterviewHeaderProps {
   onEndInterview: () => void;
-  isDialogOpen?: boolean;
-  toggleDialog?: () => void;
+  isDialogOpen: boolean;
+  toggleDialog: () => void;
 }
 
 const InterviewHeader = ({ 
   onEndInterview,
-  isDialogOpen = false,
-  toggleDialog = () => {}
+  isDialogOpen,
+  toggleDialog
 }: InterviewHeaderProps) => {
   return (
     <header className="w-full py-4 px-4 border-b bg-background/80 backdrop-blur-md z-40 relative">
@@ -25,12 +25,12 @@ const InterviewHeader = ({
             alt="AI Interview Logo"
             className="h-8"
           />
-          <span className="font-semibold text-lg">Interview Practice</span>
+          <span className="font-semibold text-lg">Interview</span>
         </Link>
 
         <AlertDialog open={isDialogOpen} onOpenChange={toggleDialog}>
           <AlertDialogTrigger asChild>
-            <Button variant="outline" className="gap-2" onClick={() => toggleDialog()}>
+            <Button variant="outline" className="gap-2">
               <XCircle className="h-4 w-4" />
               <span>End Interview</span>
             </Button>
@@ -43,7 +43,7 @@ const InterviewHeader = ({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => toggleDialog()}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={onEndInterview}>
                 Yes, End Interview
               </AlertDialogAction>
