@@ -122,6 +122,72 @@ const EmployerDashboard = () => {
         {/* Main content */}
         <main className="flex-1 pt-20 pb-20 md:pb-6 px-4 md:px-6">
           <div className="container mx-auto space-y-6">
+            <Tabs value={activeSection} className="hidden">
+              <TabsContent value="dashboard">
+                {/* First row */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <ConfigureInterviewSection />
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    <JobDescriptionUploadSection />
+                  </motion.div>
+                </div>
+                
+                {/* Second row */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <CandidateMatchesSection />
+                </motion.div>
+              </TabsContent>
+              
+              <TabsContent value="interviews">
+                {/* Interviews tab content */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="lg:col-span-1"
+                  >
+                    <InterviewsListSection onSelectInterview={setSelectedInterviewId} />
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="lg:col-span-2"
+                  >
+                    <InterviewDetailSection interviewId={selectedInterviewId} />
+                  </motion.div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="candidates">
+                {/* Candidates tab content */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <CandidateMatchesSection />
+                </motion.div>
+              </TabsContent>
+            </Tabs>
+            
             {activeSection === "dashboard" && (
               <>
                 {/* First row */}
