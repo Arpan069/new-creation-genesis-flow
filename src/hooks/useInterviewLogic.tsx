@@ -16,6 +16,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   const [transcript, setTranscript] = useState<Transcript[]>([]);
   const [currentCodingQuestion, setCurrentCodingQuestion] = useState("");
   const [showCodingChallenge, setShowCodingChallenge] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Interview questions
   const [questions] = useState([
@@ -55,12 +56,19 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     // Here you would normally send the transcript data to your backend
     // for analysis and scoring
     
+    setIsDialogOpen(false);
+    
     toast({
       title: "Interview complete",
       description: "Thank you for participating in the interview.",
     });
     
     navigate("/candidate/dashboard");
+  };
+
+  // Toggle dialog state
+  const toggleDialog = () => {
+    setIsDialogOpen(!isDialogOpen);
   };
 
   // Add message to transcript
@@ -136,8 +144,10 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     isInterviewStarted,
     currentQuestion,
     transcript,
+    isDialogOpen,
     startInterview,
     endInterview,
+    toggleDialog,
     simulateAnswer,
     currentCodingQuestion,
     showCodingChallenge

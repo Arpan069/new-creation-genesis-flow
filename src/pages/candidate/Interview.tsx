@@ -28,8 +28,10 @@ const InterviewPage = () => {
     isInterviewStarted, 
     currentQuestion, 
     transcript, 
+    isDialogOpen,
     startInterview, 
     endInterview, 
+    toggleDialog,
     simulateAnswer,
     currentCodingQuestion
   } = useInterviewLogic(isSystemAudioOn);
@@ -41,7 +43,11 @@ const InterviewPage = () => {
           <ThemeToggle />
         </div>
         
-        <InterviewHeader onEndInterview={endInterview} />
+        <InterviewHeader 
+          onEndInterview={endInterview} 
+          isDialogOpen={isDialogOpen}
+          toggleDialog={toggleDialog}
+        />
         
         <main className="flex-1 flex flex-col md:flex-row gap-4 p-4 overflow-auto container mx-auto">
           {/* Left side - AI Avatar */}
