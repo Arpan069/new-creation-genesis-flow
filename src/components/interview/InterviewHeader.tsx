@@ -30,7 +30,7 @@ const InterviewHeader = ({
 
         <AlertDialog open={isDialogOpen} onOpenChange={toggleDialog}>
           <AlertDialogTrigger asChild>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => toggleDialog()}>
               <XCircle className="h-4 w-4" />
               <span>End Interview</span>
             </Button>
@@ -43,7 +43,7 @@ const InterviewHeader = ({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => toggleDialog()}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={onEndInterview}>
                 Yes, End Interview
               </AlertDialogAction>
