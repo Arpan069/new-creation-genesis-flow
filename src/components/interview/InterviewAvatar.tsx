@@ -46,9 +46,9 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
           <div className="rounded-full bg-primary/10 p-1 mb-4">
             <div className={`rounded-full overflow-hidden border-4 ${
               isSpeaking && isSystemAudioOn ? 'border-primary animate-pulse' : 'border-primary/30'
-            }`} style={{ width: '200px', height: '200px' }}>
+            }`} style={{ width: '250px', height: '250px' }}> {/* Increased from 200px to 250px */}
               <img 
-                src="https://interviewstaging.shiksak.com/storage/customimages/ai-avatar.jpg" 
+                src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
                 alt="AI Interviewer Avatar" 
                 className="w-full h-full object-cover"
               />

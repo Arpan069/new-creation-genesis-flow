@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -50,9 +49,9 @@ const Footer = () => {
           >
             <Link to="/">
               <img
-                src="https://interviewstaging.shiksak.com/storage/customimages/ai-interviewlogo.png"
+                src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png"
                 alt="AI Interview Logo"
-                className="h-10 mb-4"
+                className="h-16 mb-4"
               />
             </Link>
             <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-sm">

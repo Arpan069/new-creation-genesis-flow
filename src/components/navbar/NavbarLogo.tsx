@@ -12,7 +12,7 @@ const NavbarLogo = () => {
       <img 
         src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
         alt="Vinte AI Interview" 
-        className="h-9 w-auto"
+        className="h-12 w-auto" // Increased from h-9 to h-12
       />
     </Link>
   );

@@ -22,7 +22,7 @@ const InterviewHeader = ({ onEndInterview }: InterviewHeaderProps) => {
           <img
             src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png"
             alt="Vinte AI Interview Logo"
-            className="h-8"
+            className="h-12" // Increased from h-8 to h-12
           />
         </Link>
 

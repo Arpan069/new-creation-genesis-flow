@@ -39,9 +39,9 @@ const DashboardHeader = ({ profileData }: DashboardHeaderProps) => {
         <div className="flex items-center gap-2">
           <Link to="/">
             <img 
-              src="https://interviewstaging.shiksak.com/storage/customimages/ai-interviewlogo.png" 
+              src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
               alt="AI Interview Logo" 
-              className="h-8" 
+              className="h-12" // Increased from h-8 to h-12
             />
           </Link>
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-2" />
@@ -54,7 +54,7 @@ const DashboardHeader = ({ profileData }: DashboardHeaderProps) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="border-2 border-primary transition-all hover:scale-105 cursor-pointer">
-                <AvatarImage src="https://github.com/shadcn.png" alt="Profile" />
+                <AvatarImage src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" alt="Profile" />
                 <AvatarFallback>AJ</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
