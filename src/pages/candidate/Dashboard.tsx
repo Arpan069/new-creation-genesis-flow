@@ -5,11 +5,11 @@ import ThreeBackground from "@/components/ThreeBackground";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Calendar, Video } from "lucide-react";
 
-// Importing our new components
+// Importing our components
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import ProfileSection from "@/components/dashboard/ProfileSection";
 import InterviewsSection from "@/components/dashboard/InterviewsSection";
-import PracticeSection from "@/components/dashboard/PracticeSection";
+import InterviewSection from "@/components/dashboard/PracticeSection";
 
 const CandidateDashboard = () => {
   const { theme } = useTheme();
@@ -135,7 +135,7 @@ const CandidateDashboard = () => {
               <Calendar className="h-4 w-4 mr-2" />
               My Interviews
             </TabsTrigger>
-            <TabsTrigger value="practice" className="flex items-center">
+            <TabsTrigger value="interview" className="flex items-center">
               <Video className="h-4 w-4 mr-2" />
               Interview
             </TabsTrigger>
@@ -154,9 +154,9 @@ const CandidateDashboard = () => {
             />
           </TabsContent>
           
-          {/* Interview Tab Content */}
-          <TabsContent value="practice">
-            <PracticeSection
+          {/* Interview Tab Content - Changed from "practice" to "interview" */}
+          <TabsContent value="interview">
+            <InterviewSection
               interviewRoles={interviewRoles}
               selectedRole={selectedRole}
               setSelectedRole={setSelectedRole}

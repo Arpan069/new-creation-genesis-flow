@@ -22,15 +22,16 @@ interface PracticeSectionProps {
   setSelectedRole: (role: string) => void;
 }
 
-const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: PracticeSectionProps) => {
+// Renamed from PracticeSection to InterviewSection to better reflect real interviews
+const InterviewSection = ({ interviewRoles, selectedRole, setSelectedRole }: PracticeSectionProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSystemCheckDialogOpen, setIsSystemCheckDialogOpen] = useState(false);
   const [systemCheckProgress, setSystemCheckProgress] = useState(0);
   const [systemCheckComplete, setSystemCheckComplete] = useState(false);
 
-  // Start practice interview
-  const handleStartPractice = () => {
+  // Start real interview
+  const handleStartInterview = () => {
     if (!selectedRole) {
       toast({
         title: "Select a role",
@@ -63,10 +64,11 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
     }, 500);
   };
 
-  const feedbackMessages = [
-    "Practice makes perfect. Regular mock interviews can significantly improve your performance.",
-    "Our AI analyzes your responses and provides detailed feedback to help you improve.",
-    "Focus on clear communication and structured responses in your interview practice.",
+  const interviewTips = [
+    "Be prepared to answer questions about your experience and skills related to the role.",
+    "Ensure your camera and microphone are working properly before the interview.",
+    "Speak clearly and take your time to formulate well-structured responses.",
+    "Our AI interviewer will evaluate your responses and provide detailed feedback.",
   ];
 
   return (
@@ -74,9 +76,9 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Practice Interview</CardTitle>
+            <CardTitle>Start Interview</CardTitle>
             <CardDescription>
-              Prepare for your upcoming interviews with our AI interviewer
+              Begin your scheduled interview with our AI interviewer
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -109,10 +111,10 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
               </Button>
               <Button 
                 className="flex-1"
-                onClick={handleStartPractice}
+                onClick={handleStartInterview}
                 disabled={!selectedRole}
               >
-                Start Practice
+                Start Interview
                 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -121,14 +123,14 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
 
         <Card>
           <CardHeader>
-            <CardTitle>Practice Tips</CardTitle>
+            <CardTitle>Interview Tips</CardTitle>
             <CardDescription>
-              Improve your interview skills with these practice tips
+              Improve your performance with these interview tips
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {feedbackMessages.map((message, index) => (
+              {interviewTips.map((message, index) => (
                 <li key={index} className="flex items-start">
                   <CheckCircle2 className="h-5 w-5 text-primary mr-2 mt-0.5 shrink-0" />
                   <span className="text-sm">{message}</span>
@@ -238,4 +240,5 @@ const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: Prac
   );
 };
 
-export default PracticeSection;
+// Export with the new name
+export default InterviewSection;

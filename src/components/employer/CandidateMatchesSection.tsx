@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +25,7 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const mockCandidates = [
   {
@@ -82,12 +82,31 @@ const mockCandidates = [
   },
 ];
 
+const initialShortlistedCandidates = [
+  {
+    id: 201,
+    name: "Thomas Wilson",
+    title: "Senior Developer",
+    status: "completed",
+    matchScore: 91,
+    cvScore: 88,
+    skills: ["React", "TypeScript", "Node.js", "AWS"],
+    experience: "7 years",
+    source: "LinkedIn",
+    profile: "https://linkedin.com/in/thomaswilson",
+    education: "MS Computer Science",
+    notes: "Excellent communication skills. Strong technical knowledge.",
+  }
+];
+
 const CandidateMatchesSection = () => {
   const [candidates, setCandidates] = useState(mockCandidates);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isShortlistDialogOpen, setIsShortlistDialogOpen] = useState(false);
   const [isGroupScheduleDialogOpen, setIsGroupScheduleDialogOpen] = useState(false);
   const [currentCandidate, setCurrentCandidate] = useState<typeof mockCandidates[0] | null>(null);
+  const [shortlistedCandidates, setShortlistedCandidates] = useState(initialShortlistedCandidates);
+  const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -109,7 +128,6 @@ const CandidateMatchesSection = () => {
     },
   });
 
-  // Count selected candidates
   const selectedCandidates = candidates.filter(c => c.selected);
   const selectedCount = selectedCandidates.length;
   
@@ -152,7 +170,7 @@ const CandidateMatchesSection = () => {
     );
   };
 
-  const handleScheduleInterview = (candidate: typeof mockCandidates[0]) => {
+  const handleScheduleInterview = (candidate: typeof mockCandidates[0] | typeof shortlistedCandidates[0]) => {
     setCurrentCandidate(candidate);
     setIsScheduleDialogOpen(true);
   };
@@ -185,19 +203,35 @@ const CandidateMatchesSection = () => {
   });
 
   const onSubmitShortlist = () => {
+    const newShortlistedCandidates = selectedCandidates.map(candidate => ({
+      id: candidate.id + 1000,
+      name: candidate.name,
+      title: candidate.title,
+      status: "shortlisted",
+      matchScore: candidate.matchScore,
+      cvScore: candidate.cvScore,
+      skills: candidate.skills || [],
+      experience: candidate.experience,
+      source: candidate.source,
+      profile: candidate.profile,
+      education: "Not provided",
+      notes: ""
+    }));
+    
+    setShortlistedCandidates([...shortlistedCandidates, ...newShortlistedCandidates]);
+    
     toast({
       title: "Candidates Added to Shortlist",
       description: `${selectedCount} candidate(s) have been added to the shortlist`,
     });
     
-    // Update UI to show candidates have been shortlisted
-    setCandidates(candidates.map(candidate => 
-      candidate.selected 
-        ? { ...candidate, selected: false } 
-        : candidate
-    ));
+    setCandidates(candidates.map(candidate => ({
+      ...candidate,
+      selected: false
+    })));
     
     setIsShortlistDialogOpen(false);
+    setActiveTab("selected");
   };
 
   const onSubmitGroupSchedule = groupScheduleForm.handleSubmit((data) => {
@@ -206,7 +240,6 @@ const CandidateMatchesSection = () => {
       description: `${selectedCount} interview(s) scheduled for ${data.date} at ${data.time}`,
     });
     
-    // Reset selection after scheduling
     setCandidates(candidates.map(candidate => 
       candidate.selected 
         ? { ...candidate, selected: false } 
@@ -216,6 +249,29 @@ const CandidateMatchesSection = () => {
     setIsGroupScheduleDialogOpen(false);
     groupScheduleForm.reset();
   });
+
+  const removeFromShortlist = (id: number) => {
+    setShortlistedCandidates(shortlistedCandidates.filter(candidate => candidate.id !== id));
+    
+    toast({
+      title: "Candidate Removed",
+      description: "Candidate has been removed from the shortlist",
+    });
+  };
+
+  const contactCandidate = (candidate: typeof shortlistedCandidates[0]) => {
+    toast({
+      title: "Contact Initiated",
+      description: `Reaching out to ${candidate.name} via email`,
+    });
+  };
+
+  const viewCandidateDetails = (candidateId: number) => {
+    toast({
+      title: "Viewing Candidate Details",
+      description: "Detailed candidate profile is being loaded",
+    });
+  };
 
   return (
     <Card className="glass-morphism">
@@ -227,142 +283,274 @@ const CandidateMatchesSection = () => {
       </CardHeader>
 
       <CardContent>
-        <div className="border rounded-md overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]">Select</TableHead>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Match Score</TableHead>
-                <TableHead>CV Score</TableHead>
-                <TableHead>Skills</TableHead>
-                <TableHead>Experience</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {candidates.length > 0 ? (
-                candidates.map((candidate) => (
-                  <TableRow key={candidate.id} className="hover:bg-muted/40">
-                    <TableCell className="text-center">
-                      <Checkbox 
-                        checked={candidate.selected}
-                        onCheckedChange={() => toggleCandidateSelection(candidate.id)}
-                        className="mr-2"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>
-                            {candidate.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{candidate.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {candidate.title}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{renderScore(candidate.matchScore, "Job Match")}</TableCell>
-                    <TableCell>{renderScore(candidate.cvScore, "CV Quality")}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {candidate.skills.slice(0, 3).map((skill, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-xs py-0 h-5"
-                          >
-                            {skill}
-                          </Badge>
-                        ))}
-                        {candidate.skills.length > 3 && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs py-0 h-5 bg-muted/50"
-                          >
-                            +{candidate.skills.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{candidate.experience}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {candidate.source}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          asChild
-                        >
-                          <a
-                            href={candidate.profile}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleScheduleInterview(candidate)}
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="all">All Candidates</TabsTrigger>
+            <TabsTrigger value="selected">Shortlisted ({shortlistedCandidates.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all">
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]">Select</TableHead>
+                    <TableHead>Candidate</TableHead>
+                    <TableHead>Match Score</TableHead>
+                    <TableHead>CV Score</TableHead>
+                    <TableHead>Skills</TableHead>
+                    <TableHead>Experience</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                    No candidate matches found yet. Upload a job description to find matches.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        
-        <div className="mt-4 flex justify-between">
-          <Button 
-            variant="outline"
-            disabled={!candidates.some(c => c.selected)}
-            onClick={handleAddToShortlist}
-          >
-            <Check className="mr-2 h-4 w-4" />
-            Add Selected to Shortlist ({selectedCount})
-          </Button>
-          
-          <Button 
-            variant="default"
-            disabled={!candidates.some(c => c.selected)}
-            onClick={handleScheduleSelectedInterviews}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Schedule Selected Interviews ({selectedCount})
-          </Button>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {candidates.length > 0 ? (
+                    candidates.map((candidate) => (
+                      <TableRow key={candidate.id} className="hover:bg-muted/40">
+                        <TableCell className="text-center">
+                          <Checkbox 
+                            checked={candidate.selected}
+                            onCheckedChange={() => toggleCandidateSelection(candidate.id)}
+                            className="mr-2"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>
+                                {candidate.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{candidate.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {candidate.title}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{renderScore(candidate.matchScore, "Job Match")}</TableCell>
+                        <TableCell>{renderScore(candidate.cvScore, "CV Quality")}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {candidate.skills.slice(0, 3).map((skill, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className="text-xs py-0 h-5"
+                              >
+                                {skill}
+                              </Badge>
+                            ))}
+                            {candidate.skills.length > 3 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs py-0 h-5 bg-muted/50"
+                              >
+                                +{candidate.skills.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{candidate.experience}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {candidate.source}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              asChild
+                            >
+                              <a
+                                href={candidate.profile}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleScheduleInterview(candidate)}
+                            >
+                              <Calendar className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                        No candidate matches found yet. Upload a job description to find matches.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            
+            <div className="mt-4 flex justify-between">
+              <Button 
+                variant="outline"
+                disabled={!candidates.some(c => c.selected)}
+                onClick={handleAddToShortlist}
+              >
+                <Star className="mr-2 h-4 w-4" />
+                Add Selected to Shortlist ({selectedCount})
+              </Button>
+              
+              <Button 
+                variant="default"
+                disabled={!candidates.some(c => c.selected)}
+                onClick={handleScheduleSelectedInterviews}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Schedule Selected Interviews ({selectedCount})
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="selected">
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Candidate</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Match Score</TableHead>
+                    <TableHead>CV Score</TableHead>
+                    <TableHead>Skills</TableHead>
+                    <TableHead>Experience</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-[140px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shortlistedCandidates.length > 0 ? (
+                    shortlistedCandidates.map((candidate) => (
+                      <TableRow key={candidate.id} className="hover:bg-muted/40">
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>
+                                {candidate.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{candidate.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {candidate.title}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{candidate.title}</TableCell>
+                        <TableCell>{renderScore(candidate.matchScore, "Job Match")}</TableCell>
+                        <TableCell>{renderScore(candidate.cvScore, "CV Quality")}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {candidate.skills && candidate.skills.slice(0, 3).map((skill, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className="text-xs py-0 h-5"
+                              >
+                                {skill}
+                              </Badge>
+                            ))}
+                            {candidate.skills && candidate.skills.length > 3 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs py-0 h-5 bg-muted/50"
+                              >
+                                +{candidate.skills.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{candidate.experience}</TableCell>
+                        <TableCell>
+                          <p className="text-sm text-muted-foreground truncate max-w-[150px]">
+                            {candidate.notes || 'No notes added'}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => viewCandidateDetails(candidate.id)}
+                            >
+                              View
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleScheduleInterview(candidate)}
+                            >
+                              Schedule
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => removeFromShortlist(candidate.id)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                        No candidates have been shortlisted yet. Select candidates and add them to the shortlist.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {shortlistedCandidates.length > 0 && (
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  variant="default"
+                  onClick={() => {
+                    toast({
+                      title: "Bulk Action",
+                      description: "Functionality to schedule all shortlisted candidates would appear here",
+                    });
+                  }}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule All Interviews
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
       
-      {/* Individual Schedule Dialog */}
       <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -382,7 +570,7 @@ const CandidateMatchesSection = () => {
                   <FormItem>
                     <FormLabel>Interview Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} required />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -396,7 +584,7 @@ const CandidateMatchesSection = () => {
                   <FormItem>
                     <FormLabel>Interview Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input type="time" {...field} required />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -410,7 +598,7 @@ const CandidateMatchesSection = () => {
                   <FormItem>
                     <FormLabel>Duration (minutes)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="30" {...field} />
+                      <Input type="number" placeholder="30" {...field} required />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -429,6 +617,7 @@ const CandidateMatchesSection = () => {
                         placeholder="Position title" 
                         defaultValue={currentCandidate?.title || ""}
                         {...field} 
+                        required
                       />
                     </FormControl>
                     <FormMessage />
@@ -447,7 +636,6 @@ const CandidateMatchesSection = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Shortlist Confirmation Dialog */}
       <Dialog open={isShortlistDialogOpen} onOpenChange={setIsShortlistDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -479,7 +667,6 @@ const CandidateMatchesSection = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Group Schedule Dialog */}
       <Dialog open={isGroupScheduleDialogOpen} onOpenChange={setIsGroupScheduleDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
