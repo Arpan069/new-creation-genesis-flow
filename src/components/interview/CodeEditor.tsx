@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,24 +25,43 @@ interface CodeEditorProps {
   codingQuestion: string;
 }
 
+// Memoized TextArea to prevent unnecessary re-renders
+const MemoizedTextarea = memo(
+  ({ value, onChange, className, readOnly }: { 
+    value: string; 
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; 
+    className: string; 
+    readOnly?: boolean 
+  }) => (
+    <Textarea
+      value={value}
+      onChange={onChange}
+      className={className}
+      readOnly={readOnly}
+    />
+  )
+);
+MemoizedTextarea.displayName = 'MemoizedTextarea';
+
 const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
   const [language, setLanguage] = useState<string>("javascript");
   const [code, setCode] = useState<Record<string, string>>(DEFAULT_CODE);
   const [output, setOutput] = useState<string>("");
   const [isRunning, setIsRunning] = useState<boolean>(false);
 
-  const handleLanguageChange = (value: string) => {
+  const handleLanguageChange = useCallback((value: string) => {
     setLanguage(value);
-  };
+  }, []);
 
-  const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCode((prev) => ({
+  const handleCodeChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setCode(prev => ({
       ...prev,
-      [language]: e.target.value,
+      [language]: newValue,
     }));
-  };
+  }, [language]);
 
-  const runCode = () => {
+  const runCode = useCallback(() => {
     setIsRunning(true);
     // In a real implementation, this would send the code to a backend for execution
     // For this demo, we'll simulate a response
@@ -50,13 +69,13 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
       setOutput(`Executing ${language} code...\n\n> Running code...\n> Hello, world!\n\n✅ Program executed successfully.`);
       setIsRunning(false);
     }, 1500);
-  };
+  }, [language]);
 
-  const copyCode = () => {
+  const copyCode = useCallback(() => {
     navigator.clipboard.writeText(code[language]);
-  };
+  }, [code, language]);
 
-  const downloadCode = () => {
+  const downloadCode = useCallback(() => {
     const extensions: Record<string, string> = {
       javascript: "js",
       python: "py",
@@ -71,14 +90,14 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-  };
+  }, [code, language]);
 
-  const resetCode = () => {
-    setCode((prev) => ({
+  const resetCode = useCallback(() => {
+    setCode(prev => ({
       ...prev,
       [language]: DEFAULT_CODE[language as keyof typeof DEFAULT_CODE],
     }));
-  };
+  }, [language]);
 
   return (
     <Card className="glass-morphism border-primary/10 h-full flex flex-col">
@@ -147,13 +166,13 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
               <TabsContent key={lang.id} value={lang.id} className="flex-grow flex flex-col m-0 p-0">
                 <div className="flex-grow flex flex-col">
                   <div className="text-xs text-muted-foreground mb-1">Editor</div>
-                  <Textarea
+                  <MemoizedTextarea
                     value={code[lang.id]}
-                    onChange={handleCodeChange}
+                    onChange={lang.id === language ? handleCodeChange : undefined}
                     className="flex-grow font-mono text-sm bg-muted/30 min-h-[300px]"
                   />
                   <div className="text-xs text-muted-foreground mb-1 mt-2">Output</div>
-                  <Textarea
+                  <MemoizedTextarea
                     value={output}
                     readOnly
                     className="h-32 font-mono text-sm bg-background"
@@ -168,4 +187,4 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
   );
 };
 
-export default CodeEditor;
+export default memo(CodeEditor);

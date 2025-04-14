@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 export const useInterviewMedia = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -7,23 +7,31 @@ export const useInterviewMedia = () => {
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [isSystemAudioOn, setIsSystemAudioOn] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   // Initialize user media stream
   useEffect(() => {
     const initializeMedia = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: isVideoOn, 
-          audio: isAudioOn 
-        });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: isVideoOn, 
+            audio: isAudioOn 
+          });
+          
+          mediaStreamRef.current = stream;
+          
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } else {
+          console.error("getUserMedia is not supported in this browser");
         }
         
+        // Set loading to false after a small delay
         setTimeout(() => {
           setIsLoading(false);
-        }, 2000);
+        }, 1000); // Reduced from 2000ms to 1000ms for better UX
         
       } catch (error) {
         console.error("Error accessing media devices:", error);
@@ -35,16 +43,16 @@ export const useInterviewMedia = () => {
     
     return () => {
       // Clean up media streams when component unmounts
-      const stream = videoRef.current?.srcObject as MediaStream;
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
       }
     };
   }, []);
 
-  // Toggle video
-  const toggleVideo = async () => {
-    const stream = videoRef.current?.srcObject as MediaStream;
+  // Toggle video with memoized callback to prevent unnecessary re-renders
+  const toggleVideo = useCallback(async () => {
+    const stream = mediaStreamRef.current;
     
     if (stream) {
       const videoTracks = stream.getVideoTracks();
@@ -66,11 +74,11 @@ export const useInterviewMedia = () => {
         }
       }
     }
-  };
+  }, [isVideoOn]);
 
-  // Toggle audio
-  const toggleAudio = async () => {
-    const stream = videoRef.current?.srcObject as MediaStream;
+  // Toggle audio with memoized callback
+  const toggleAudio = useCallback(async () => {
+    const stream = mediaStreamRef.current;
     
     if (stream) {
       const audioTracks = stream.getAudioTracks();
@@ -92,12 +100,12 @@ export const useInterviewMedia = () => {
         }
       }
     }
-  };
+  }, [isAudioOn]);
 
-  // Toggle system audio (AI voice)
-  const toggleSystemAudio = () => {
-    setIsSystemAudioOn(!isSystemAudioOn);
-  };
+  // Toggle system audio with memoized callback
+  const toggleSystemAudio = useCallback(() => {
+    setIsSystemAudioOn(prev => !prev);
+  }, []);
 
   return {
     videoRef,
