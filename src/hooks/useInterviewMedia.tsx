@@ -1,6 +1,5 @@
 
 import { useState, useRef, useEffect } from "react";
-import { toast } from "@/hooks/use-toast";
 
 export const useInterviewMedia = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -24,19 +23,10 @@ export const useInterviewMedia = () => {
         
         setTimeout(() => {
           setIsLoading(false);
-          toast({
-            title: "System check complete",
-            description: "Camera and microphone are working properly.",
-          });
         }, 2000);
         
       } catch (error) {
         console.error("Error accessing media devices:", error);
-        toast({
-          title: "Media access error",
-          description: "Could not access camera or microphone. Please check your permissions.",
-          variant: "destructive",
-        });
         setIsLoading(false);
       }
     };
@@ -72,11 +62,7 @@ export const useInterviewMedia = () => {
           stream.addTrack(videoTrack);
           setIsVideoOn(true);
         } catch (error) {
-          toast({
-            title: "Camera error",
-            description: "Could not access camera.",
-            variant: "destructive",
-          });
+          console.error("Could not access camera.", error);
         }
       }
     }
@@ -102,11 +88,7 @@ export const useInterviewMedia = () => {
           stream.addTrack(audioTrack);
           setIsAudioOn(true);
         } catch (error) {
-          toast({
-            title: "Microphone error",
-            description: "Could not access microphone.",
-            variant: "destructive",
-          });
+          console.error("Could not access microphone.", error);
         }
       }
     }

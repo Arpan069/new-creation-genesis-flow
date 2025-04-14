@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Play, Copy, Download, RotateCw, Code2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 const SUPPORTED_LANGUAGES = [
   { id: "javascript", name: "JavaScript" },
@@ -50,19 +49,11 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
     setTimeout(() => {
       setOutput(`Executing ${language} code...\n\n> Running code...\n> Hello, world!\n\n✅ Program executed successfully.`);
       setIsRunning(false);
-      toast({
-        title: "Code executed",
-        description: "Your code has been executed successfully.",
-      });
     }, 1500);
   };
 
   const copyCode = () => {
     navigator.clipboard.writeText(code[language]);
-    toast({
-      title: "Code copied",
-      description: "Code has been copied to clipboard.",
-    });
   };
 
   const downloadCode = () => {
@@ -80,11 +71,6 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    
-    toast({
-      title: "Code downloaded",
-      description: `File saved as code.${extensions[language]}`,
-    });
   };
 
   const resetCode = () => {
@@ -92,10 +78,6 @@ const CodeEditor = ({ codingQuestion }: CodeEditorProps) => {
       ...prev,
       [language]: DEFAULT_CODE[language as keyof typeof DEFAULT_CODE],
     }));
-    toast({
-      title: "Code reset",
-      description: "Code has been reset to default example.",
-    });
   };
 
   return (
