@@ -1,12 +1,20 @@
 
-import React from "react";
-import { PlayCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { CheckCircle2, ArrowRight, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 interface PracticeSectionProps {
   interviewRoles: string[];
@@ -16,138 +24,216 @@ interface PracticeSectionProps {
 
 const PracticeSection = ({ interviewRoles, selectedRole, setSelectedRole }: PracticeSectionProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isSystemCheckDialogOpen, setIsSystemCheckDialogOpen] = useState(false);
+  const [systemCheckProgress, setSystemCheckProgress] = useState(0);
+  const [systemCheckComplete, setSystemCheckComplete] = useState(false);
 
-  const handleStartInterview = () => {
+  // Start practice interview
+  const handleStartPractice = () => {
     if (!selectedRole) {
       toast({
-        title: "Please select a role",
-        description: "You need to select an interview role before starting",
+        title: "Select a role",
+        description: "Please select a role before starting the interview",
         variant: "destructive",
       });
       return;
     }
-    
-    navigate("/candidate/interview");
+
+    // Navigate to interview page
+    navigate('/candidate/interview');
   };
+
+  // Run system check
+  const handleRunSystemCheck = () => {
+    setIsSystemCheckDialogOpen(true);
+    setSystemCheckProgress(0);
+    setSystemCheckComplete(false);
+    
+    // Simulate system check progress
+    const interval = setInterval(() => {
+      setSystemCheckProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setSystemCheckComplete(true);
+          return 100;
+        }
+        return prev + 20;
+      });
+    }, 500);
+  };
+
+  const feedbackMessages = [
+    "Practice makes perfect. Regular mock interviews can significantly improve your performance.",
+    "Our AI analyzes your responses and provides detailed feedback to help you improve.",
+    "Focus on clear communication and structured responses in your interview practice.",
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* System Check */}
-        <Card className="lg:col-span-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
-            <CardTitle>System Check</CardTitle>
+            <CardTitle>Practice Interview</CardTitle>
+            <CardDescription>
+              Prepare for your upcoming interviews with our AI interviewer
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm">
-              Ensure your device meets all requirements for a smooth interview experience.
-            </p>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                    Passed
-                  </Badge>
-                  <span className="text-sm ml-2">Browser compatibility</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                    12 Mbps
-                  </Badge>
-                  <span className="text-sm ml-2">Internet speed</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-50">
-                    Optimal
-                  </Badge>
-                  <span className="text-sm ml-2">Screen resolution</span>
-                </div>
-              </div>
-              
-              <Button className="w-full">Run Full System Check</Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Interview Setup */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Start Interview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-base font-medium">Select Interview Role</h3>
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium mb-2">
+                Select Role
+              </label>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a role for your interview" />
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
                   {interviewRoles.map((role) => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
-            <div>
-              <h3 className="text-base font-medium mb-3">Interview Steps</h3>
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <div className="flex h-6 w-6 bg-primary/10 rounded-full items-center justify-center text-primary text-sm font-medium mr-3 mt-0.5">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium">Select a role from the dropdown</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Choose the position you're applying for
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex h-6 w-6 bg-primary/10 rounded-full items-center justify-center text-primary text-sm font-medium mr-3 mt-0.5">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium">Check your system</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Make sure your camera and microphone are working properly
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex h-6 w-6 bg-primary/10 rounded-full items-center justify-center text-primary text-sm font-medium mr-3 mt-0.5">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium">Start your interview</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Our AI interviewer will guide you through role-specific questions
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-center pt-4">
+            <div className="flex items-center justify-between">
               <Button 
-                className="w-full max-w-xs flex items-center gap-2" 
-                onClick={handleStartInterview}
+                variant="outline" 
+                className="flex-1 mr-2"
+                onClick={handleRunSystemCheck}
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Run Full System Check
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleStartPractice}
                 disabled={!selectedRole}
               >
-                <PlayCircle className="h-5 w-5" />
-                Start Interview
+                Start Practice
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Practice Tips</CardTitle>
+            <CardDescription>
+              Improve your interview skills with these practice tips
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {feedbackMessages.map((message, index) => (
+                <li key={index} className="flex items-start">
+                  <CheckCircle2 className="h-5 w-5 text-primary mr-2 mt-0.5 shrink-0" />
+                  <span className="text-sm">{message}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <div className="mt-4">
+              <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate('/resources')}>
+                View all interview resources
+                <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* System Check Dialog */}
+      <Dialog open={isSystemCheckDialogOpen} onOpenChange={setIsSystemCheckDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>System Check</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="space-y-4">
+              {!systemCheckComplete ? (
+                <>
+                  <p className="text-center">Running system diagnostics...</p>
+                  <Progress value={systemCheckProgress} className="h-2 w-full" />
+                  <div className="space-y-2 mt-4">
+                    <div className="flex items-center">
+                      <div className={`h-2 w-2 rounded-full mr-2 ${systemCheckProgress >= 20 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm">Checking camera...</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`h-2 w-2 rounded-full mr-2 ${systemCheckProgress >= 40 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm">Checking microphone...</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`h-2 w-2 rounded-full mr-2 ${systemCheckProgress >= 60 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm">Checking speakers...</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`h-2 w-2 rounded-full mr-2 ${systemCheckProgress >= 80 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm">Testing internet connection...</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className={`h-2 w-2 rounded-full mr-2 ${systemCheckProgress >= 100 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className="text-sm">Finalizing results...</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center mb-4">
+                    <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
+                    <h3 className="text-xl font-medium">System Check Complete</h3>
+                    <p className="text-sm text-muted-foreground">Your system is ready for interviews</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Camera</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        Passed
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Microphone</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        Passed
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Speakers</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        Passed
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Internet Connection</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        15 Mbps (Good)
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Browser Compatibility</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        Compatible
+                      </Badge>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setIsSystemCheckDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

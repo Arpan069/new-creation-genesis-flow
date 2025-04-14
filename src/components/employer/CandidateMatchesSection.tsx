@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useNavigate } from "react-router-dom";
 
 const mockCandidates = [
   {
@@ -83,8 +85,11 @@ const mockCandidates = [
 const CandidateMatchesSection = () => {
   const [candidates, setCandidates] = useState(mockCandidates);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [isShortlistDialogOpen, setIsShortlistDialogOpen] = useState(false);
+  const [isGroupScheduleDialogOpen, setIsGroupScheduleDialogOpen] = useState(false);
   const [currentCandidate, setCurrentCandidate] = useState<typeof mockCandidates[0] | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const form = useForm({
     defaultValues: {
@@ -95,6 +100,19 @@ const CandidateMatchesSection = () => {
     },
   });
 
+  const groupScheduleForm = useForm({
+    defaultValues: {
+      date: "",
+      time: "",
+      duration: "",
+      position: "",
+    },
+  });
+
+  // Count selected candidates
+  const selectedCandidates = candidates.filter(c => c.selected);
+  const selectedCount = selectedCandidates.length;
+  
   const renderScore = (score: number, label: string) => {
     let colorClass = "";
     if (score >= 90) {
@@ -139,6 +157,16 @@ const CandidateMatchesSection = () => {
     setIsScheduleDialogOpen(true);
   };
 
+  const handleAddToShortlist = () => {
+    if (selectedCount === 0) return;
+    setIsShortlistDialogOpen(true);
+  };
+
+  const handleScheduleSelectedInterviews = () => {
+    if (selectedCount === 0) return;
+    setIsGroupScheduleDialogOpen(true);
+  };
+
   const toggleCandidateSelection = (id: number) => {
     setCandidates(candidates.map(candidate => 
       candidate.id === id 
@@ -154,6 +182,39 @@ const CandidateMatchesSection = () => {
     });
     setIsScheduleDialogOpen(false);
     form.reset();
+  });
+
+  const onSubmitShortlist = () => {
+    toast({
+      title: "Candidates Added to Shortlist",
+      description: `${selectedCount} candidate(s) have been added to the shortlist`,
+    });
+    
+    // Update UI to show candidates have been shortlisted
+    setCandidates(candidates.map(candidate => 
+      candidate.selected 
+        ? { ...candidate, selected: false } 
+        : candidate
+    ));
+    
+    setIsShortlistDialogOpen(false);
+  };
+
+  const onSubmitGroupSchedule = groupScheduleForm.handleSubmit((data) => {
+    toast({
+      title: "Group Interviews Scheduled",
+      description: `${selectedCount} interview(s) scheduled for ${data.date} at ${data.time}`,
+    });
+    
+    // Reset selection after scheduling
+    setCandidates(candidates.map(candidate => 
+      candidate.selected 
+        ? { ...candidate, selected: false } 
+        : candidate
+    ));
+    
+    setIsGroupScheduleDialogOpen(false);
+    groupScheduleForm.reset();
   });
 
   return (
@@ -284,21 +345,24 @@ const CandidateMatchesSection = () => {
           <Button 
             variant="outline"
             disabled={!candidates.some(c => c.selected)}
+            onClick={handleAddToShortlist}
           >
             <Check className="mr-2 h-4 w-4" />
-            Add Selected to Shortlist
+            Add Selected to Shortlist ({selectedCount})
           </Button>
           
           <Button 
             variant="default"
             disabled={!candidates.some(c => c.selected)}
+            onClick={handleScheduleSelectedInterviews}
           >
             <Calendar className="mr-2 h-4 w-4" />
-            Schedule Selected Interviews
+            Schedule Selected Interviews ({selectedCount})
           </Button>
         </div>
       </CardContent>
       
+      {/* Individual Schedule Dialog */}
       <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -377,6 +441,135 @@ const CandidateMatchesSection = () => {
                   Cancel
                 </Button>
                 <Button type="submit">Schedule Interview</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shortlist Confirmation Dialog */}
+      <Dialog open={isShortlistDialogOpen} onOpenChange={setIsShortlistDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add to Shortlist</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p>Are you sure you want to add {selectedCount} candidate(s) to the shortlist?</p>
+            <div className="mt-4">
+              {selectedCandidates.map((candidate) => (
+                <div key={candidate.id} className="flex items-center gap-2 mb-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback>
+                      {candidate.name.split(" ").map((n) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{candidate.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsShortlistDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={onSubmitShortlist}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Schedule Dialog */}
+      <Dialog open={isGroupScheduleDialogOpen} onOpenChange={setIsGroupScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Schedule {selectedCount} Interview(s)</DialogTitle>
+          </DialogHeader>
+          
+          <Form {...groupScheduleForm}>
+            <form onSubmit={onSubmitGroupSchedule} className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Selected candidates:</p>
+                <div className="max-h-32 overflow-y-auto">
+                  {selectedCandidates.map((candidate) => (
+                    <div key={candidate.id} className="flex items-center gap-2 mb-1">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback>
+                          {candidate.name.split(" ").map((n) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{candidate.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <FormField
+                control={groupScheduleForm.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Interview Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={groupScheduleForm.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Starting Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={groupScheduleForm.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration (minutes)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="30" {...field} required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={groupScheduleForm.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="text" 
+                        placeholder="Position title" 
+                        {...field} 
+                        required
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsGroupScheduleDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Schedule All</Button>
               </DialogFooter>
             </form>
           </Form>
