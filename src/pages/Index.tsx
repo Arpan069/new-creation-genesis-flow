@@ -4,7 +4,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TestimonialCarousel from "@/components/TestimonialCarousel";
 import HeroSection from "@/components/home/HeroSection";
-import BackgroundWrapper from "@/components/home/BackgroundWrapper";
 
 const Index = () => {
   const testimonialRef = useRef<HTMLDivElement>(null);
@@ -15,11 +14,11 @@ const Index = () => {
   };
 
   return (
-    <BackgroundWrapper>
+    <div className="min-h-screen flex flex-col">
       {/* Navbar */}
       <Navbar />
       
-      <main className="flex-grow flex flex-col relative z-10 px-4 py-12">
+      <main className="flex-grow flex flex-col relative z-10">
         <div className="container mx-auto">
           <HeroSection />
         </div>
@@ -31,7 +30,7 @@ const Index = () => {
       </main>
       
       <Footer />
-    </BackgroundWrapper>
+    </div>
   );
 };
 
