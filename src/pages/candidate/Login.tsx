@@ -26,7 +26,7 @@ const CandidateLogin = () => {
         
         <Link to="/" className="absolute top-8 left-8 z-50">
           <img 
-            src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
+            src="https://interviewstaging.shiksak.com/storage/customimages/ai-interviewlogo.png" 
             alt="AI Interview Logo" 
             className="h-10" 
           />
