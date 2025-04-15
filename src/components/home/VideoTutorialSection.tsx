@@ -78,7 +78,7 @@ const VideoTutorialSection = () => {
           <video
             ref={videoRef}
             className="w-full aspect-video object-cover"
-            poster="/WhatsApp Video 2025-04-10 at 04.30.16_65d61047 (online-video-cutter.com).mp4#t=0.001"
+            poster="/WhatsApp Video 2025-04-10 at 04.30.16_65d61047 (online-video-cutter.com).mp4#t=0.5"
             muted={isMuted}
             playsInline
             preload="metadata"
