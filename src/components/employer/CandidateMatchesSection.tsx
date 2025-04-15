@@ -27,7 +27,31 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-const mockCandidates = [
+interface BaseCandidate {
+  id: number;
+  name: string;
+  title: string;
+  matchScore: number;
+  cvScore: number;
+  skills: string[];
+  experience: string;
+  source: string;
+  profile: string;
+  education: string;
+}
+
+interface RegularCandidate extends BaseCandidate {
+  selected: boolean;
+}
+
+interface ShortlistedCandidate extends BaseCandidate {
+  status: string;
+  notes: string;
+}
+
+type CandidateType = RegularCandidate | ShortlistedCandidate;
+
+const mockCandidates: RegularCandidate[] = [
   {
     id: 1,
     name: "Alex Johnson",
@@ -82,7 +106,7 @@ const mockCandidates = [
   },
 ];
 
-const initialShortlistedCandidates = [
+const initialShortlistedCandidates: ShortlistedCandidate[] = [
   {
     id: 201,
     name: "Thomas Wilson",
@@ -100,12 +124,12 @@ const initialShortlistedCandidates = [
 ];
 
 const CandidateMatchesSection = () => {
-  const [candidates, setCandidates] = useState(mockCandidates);
+  const [candidates, setCandidates] = useState<RegularCandidate[]>(mockCandidates);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isShortlistDialogOpen, setIsShortlistDialogOpen] = useState(false);
   const [isGroupScheduleDialogOpen, setIsGroupScheduleDialogOpen] = useState(false);
-  const [currentCandidate, setCurrentCandidate] = useState<typeof mockCandidates[0] | null>(null);
-  const [shortlistedCandidates, setShortlistedCandidates] = useState(initialShortlistedCandidates);
+  const [currentCandidate, setCurrentCandidate] = useState<CandidateType | null>(null);
+  const [shortlistedCandidates, setShortlistedCandidates] = useState<ShortlistedCandidate[]>(initialShortlistedCandidates);
   const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -170,7 +194,7 @@ const CandidateMatchesSection = () => {
     );
   };
 
-  const handleScheduleInterview = (candidate: typeof mockCandidates[0] | typeof shortlistedCandidates[0]) => {
+  const handleScheduleInterview = (candidate: CandidateType) => {
     setCurrentCandidate(candidate);
     setIsScheduleDialogOpen(true);
   };
@@ -203,7 +227,7 @@ const CandidateMatchesSection = () => {
   });
 
   const onSubmitShortlist = () => {
-    const newShortlistedCandidates = selectedCandidates.map(candidate => ({
+    const newShortlistedCandidates: ShortlistedCandidate[] = selectedCandidates.map(candidate => ({
       id: candidate.id + 1000,
       name: candidate.name,
       title: candidate.title,
@@ -214,7 +238,7 @@ const CandidateMatchesSection = () => {
       experience: candidate.experience,
       source: candidate.source,
       profile: candidate.profile,
-      education: "Not provided",
+      education: candidate.education || "Not provided",
       notes: ""
     }));
     
@@ -259,7 +283,7 @@ const CandidateMatchesSection = () => {
     });
   };
 
-  const contactCandidate = (candidate: typeof shortlistedCandidates[0]) => {
+  const contactCandidate = (candidate: ShortlistedCandidate) => {
     toast({
       title: "Contact Initiated",
       description: `Reaching out to ${candidate.name} via email`,
