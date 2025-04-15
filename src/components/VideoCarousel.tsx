@@ -9,31 +9,26 @@ const carouselData = [
   {
     id: 1,
     title: "Mock Interview For Software Engineering",
-    thumbnail: "https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=2069&auto=format&fit=crop",
     video: "/WhatsApp Video 2025-04-10 at 03.57.49_10143aa7 (online-video-cutter.com).mp4"
   },
   {
     id: 2,
     title: "How To Ace Your Data Science Interview",
-    thumbnail: "https://images.unsplash.com/photo-1558746204-8f5be0fce8b3?q=80&w=2070&auto=format&fit=crop",
     video: "/WhatsApp Video 2025-04-10 at 04.30.16_65d61047 (online-video-cutter.com).mp4"
   },
   {
     id: 3,
     title: "Product Management Interview Tips",
-    thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop",
     video: "/WhatsApp Video 2025-04-10 at 04.30.19_21c3faf8 (online-video-cutter.com).mp4"
   },
   {
     id: 4,
     title: "UI/UX Design Interview Best Practices",
-    thumbnail: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop",
     video: "/WhatsApp Video 2025-04-10 at 04.30.19_a4e9d891 (online-video-cutter.com).mp4"
   },
   {
     id: 5,
     title: "Machine Learning Interview Questions",
-    thumbnail: "https://images.unsplash.com/photo-1518186233392-c232efbf2373?q=80&w=2074&auto=format&fit=crop",
     video: "/WhatsApp Video 2025-04-10 at 04.32.59_362c7b7b (online-video-cutter.com).mp4"
   },
 ];
@@ -136,11 +131,11 @@ const VideoCarousel = () => {
             <div key={item.id} className="relative min-w-full h-full">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30 z-10"></div>
               
-              {/* Use video instead of image */}
+              {/* Use video with poster set to the first frame */}
               <video 
                 ref={el => videoRefs.current[index] = el}
                 src={item.video}
-                poster={item.thumbnail}
+                poster={`${item.video}#t=0.001`}
                 className="w-full h-full object-cover"
                 playsInline
                 preload="metadata"
