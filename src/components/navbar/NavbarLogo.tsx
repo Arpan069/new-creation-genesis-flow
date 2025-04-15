@@ -10,7 +10,7 @@ const NavbarLogo = () => {
   return (
     <Link to="/" className="flex items-center">
       <img 
-        src="/lovable-uploads/9443eed9-aca4-4c5d-b31f-11f68e84cd81.png" 
+        src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
         alt="Vinte AI Interview" 
         className="h-12 w-auto"
         loading="eager"
