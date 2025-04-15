@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 
 interface AnimatedBackgroundProps {
@@ -9,14 +9,22 @@ interface AnimatedBackgroundProps {
 const AnimatedBackground: React.FC<AnimatedBackgroundProps> = () => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  useEffect(() => {
+    // Remove the 'loop' attribute by setting it to false
+    if (videoRef.current) {
+      videoRef.current.loop = false;
+    }
+  }, []);
   
   return (
     <div className="absolute inset-0 overflow-hidden w-full h-full z-0">
-      {/* Video background */}
+      {/* Video background - removed 'loop' attribute */}
       <video
+        ref={videoRef}
         autoPlay
         muted
-        loop
         playsInline
         className="absolute object-cover w-full h-full"
       >
