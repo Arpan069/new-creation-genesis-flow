@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from "react";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
@@ -55,6 +56,7 @@ const VideoCarousel = () => {
     );
   };
 
+  // Pause all videos when changing slides
   const pauseAllVideos = () => {
     videoRefs.current.forEach((videoRef, index) => {
       if (videoRef) {
@@ -73,6 +75,7 @@ const VideoCarousel = () => {
         if (isPlaying[index]) {
           video.pause();
         } else {
+          // Pause any other playing videos
           pauseAllVideos();
           video.play();
         }
@@ -84,16 +87,18 @@ const VideoCarousel = () => {
     }
   };
 
+  // Reduced auto advance carousel
   useEffect(() => {
     const interval = setInterval(() => {
       if (!isPlaying.some(playing => playing)) {
         nextSlide();
       }
-    }, 8000);
+    }, 8000); // Change slide every 8 seconds (if no video is playing)
     
     return () => clearInterval(interval);
   }, [isPlaying]);
 
+  // Animation when component comes into view
   useEffect(() => {
     if (isInView) {
       controls.start({
@@ -112,6 +117,7 @@ const VideoCarousel = () => {
       className="relative w-full max-w-5xl mx-auto mt-20 mb-24 overflow-hidden rounded-2xl shadow-xl"
     >
       <div className="relative h-[400px] md:h-[500px] bg-brand-primary/5">
+        {/* Decorative elements */}
         <div className={`absolute -top-10 -left-10 w-40 h-40 rounded-full ${isDark ? 'bg-brand-secondary/10' : 'bg-brand-secondary/20'} blur-3xl`}></div>
         <div className={`absolute -bottom-10 -right-10 w-40 h-40 rounded-full ${isDark ? 'bg-brand-primary/10' : 'bg-brand-primary/20'} blur-3xl`}></div>
         
@@ -125,10 +131,11 @@ const VideoCarousel = () => {
             <div key={item.id} className="relative min-w-full h-full">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30 z-10"></div>
               
+              {/* Use video with poster set to the first frame */}
               <video 
                 ref={el => videoRefs.current[index] = el}
                 src={item.video}
-                poster={`${item.video}#t=0.5`}
+                poster={`${item.video}#t=0.001`}
                 className="w-full h-full object-cover"
                 playsInline
                 preload="metadata"
