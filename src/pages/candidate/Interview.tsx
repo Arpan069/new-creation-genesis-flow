@@ -51,7 +51,7 @@ const InterviewPage = () => {
             transition={{ duration: 0.5 }}
             className="w-full md:w-1/2 flex flex-col gap-4"
           >
-            <Card className="flex-1 relative overflow-hidden glass-morphism border-primary/10">
+            <Card className="relative overflow-hidden glass-morphism border-primary/10 h-[calc(100vh-300px)]"> {/* Added fixed height */}
               <CardContent className="p-0 h-full flex flex-col justify-center items-center">
                 <InterviewAvatar 
                   isInterviewStarted={isInterviewStarted}
@@ -99,3 +99,4 @@ const InterviewPage = () => {
 };
 
 export default InterviewPage;
+
