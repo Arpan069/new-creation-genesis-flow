@@ -1,16 +1,18 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, FileText, ExternalLink, Star, Calendar, Check } from "lucide-react";
+import { User, FileText, ExternalLink, Star, Calendar, Check, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -38,6 +40,7 @@ interface BaseCandidate {
   source: string;
   profile: string;
   education: string;
+  resumeUrl?: string;
 }
 
 interface RegularCandidate extends BaseCandidate {
@@ -64,6 +67,7 @@ const mockCandidates: RegularCandidate[] = [
     profile: "https://linkedin.com/in/alexjohnson",
     education: "MSc Computer Science",
     selected: false,
+    resumeUrl: "/resume/alex_johnson_resume.pdf",
   },
   {
     id: 2,
@@ -77,6 +81,7 @@ const mockCandidates: RegularCandidate[] = [
     profile: "https://naukri.com/profiles/priyas",
     education: "BTech Information Technology",
     selected: false,
+    resumeUrl: "/resume/priya_sharma_resume.pdf",
   },
   {
     id: 3,
@@ -90,6 +95,7 @@ const mockCandidates: RegularCandidate[] = [
     profile: "https://linkedin.com/in/michaelchen",
     education: "BS Computer Science",
     selected: false,
+    resumeUrl: "/resume/michael_chen_resume.pdf",
   },
   {
     id: 4,
@@ -103,6 +109,7 @@ const mockCandidates: RegularCandidate[] = [
     profile: "https://indeed.com/r/sarahwilson",
     education: "Self-taught, Bootcamp Graduate",
     selected: false,
+    resumeUrl: "/resume/sarah_wilson_resume.pdf",
   },
 ];
 
@@ -120,6 +127,7 @@ const initialShortlistedCandidates: ShortlistedCandidate[] = [
     profile: "https://linkedin.com/in/thomaswilson",
     education: "MS Computer Science",
     notes: "Excellent communication skills. Strong technical knowledge.",
+    resumeUrl: "/resume/thomas_wilson_resume.pdf",
   }
 ];
 
@@ -128,6 +136,7 @@ const CandidateMatchesSection = () => {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [isShortlistDialogOpen, setIsShortlistDialogOpen] = useState(false);
   const [isGroupScheduleDialogOpen, setIsGroupScheduleDialogOpen] = useState(false);
+  const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
   const [currentCandidate, setCurrentCandidate] = useState<CandidateType | null>(null);
   const [shortlistedCandidates, setShortlistedCandidates] = useState<ShortlistedCandidate[]>(initialShortlistedCandidates);
   const [activeTab, setActiveTab] = useState("all");
@@ -149,6 +158,7 @@ const CandidateMatchesSection = () => {
       time: "",
       duration: "",
       position: "",
+      interval: "30",
     },
   });
 
@@ -199,6 +209,11 @@ const CandidateMatchesSection = () => {
     setIsScheduleDialogOpen(true);
   };
 
+  const handleViewResume = (candidate: CandidateType) => {
+    setCurrentCandidate(candidate);
+    setIsResumeDialogOpen(true);
+  };
+
   const handleAddToShortlist = () => {
     if (selectedCount === 0) return;
     setIsShortlistDialogOpen(true);
@@ -239,6 +254,7 @@ const CandidateMatchesSection = () => {
       source: candidate.source,
       profile: candidate.profile,
       education: candidate.education || "Not provided",
+      resumeUrl: candidate.resumeUrl,
       notes: ""
     }));
     
@@ -259,9 +275,23 @@ const CandidateMatchesSection = () => {
   };
 
   const onSubmitGroupSchedule = groupScheduleForm.handleSubmit((data) => {
+    // Calculate end times for each interview based on start time and interval
+    const startTime = data.time;
+    const startDate = data.date;
+    const interval = parseInt(data.interval);
+    
     toast({
       title: "Group Interviews Scheduled",
-      description: `${selectedCount} interview(s) scheduled for ${data.date} at ${data.time}`,
+      description: `${selectedCount} interview(s) scheduled starting on ${startDate} at ${startTime} with ${interval}-minute intervals.`,
+    });
+    
+    // Show individual confirmations for each candidate
+    selectedCandidates.forEach((candidate, index) => {
+      // In a real app, we would calculate actual start times for each candidate
+      toast({
+        title: `Interview with ${candidate.name} scheduled`,
+        description: `Position: ${data.position}, Duration: ${data.duration} minutes`,
+      });
     });
     
     setCandidates(candidates.map(candidate => 
@@ -295,6 +325,25 @@ const CandidateMatchesSection = () => {
       title: "Viewing Candidate Details",
       description: "Detailed candidate profile is being loaded",
     });
+  };
+
+  const downloadResume = () => {
+    if (!currentCandidate?.resumeUrl) {
+      toast({
+        title: "Resume Not Available",
+        description: "The resume for this candidate is not available for download.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Resume Downloaded",
+      description: `The resume for ${currentCandidate.name} has been downloaded.`,
+    });
+    
+    // In a real app, this would trigger an actual download
+    setIsResumeDialogOpen(false);
   };
 
   return (
@@ -388,7 +437,12 @@ const CandidateMatchesSection = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleViewResume(candidate)}
+                            >
                               <FileText className="h-4 w-4" />
                             </Button>
                             <Button
@@ -521,9 +575,9 @@ const CandidateMatchesSection = () => {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => viewCandidateDetails(candidate.id)}
+                              onClick={() => handleViewResume(candidate)}
                             >
-                              View
+                              Resume
                             </Button>
                             <Button 
                               variant="ghost" 
@@ -559,12 +613,7 @@ const CandidateMatchesSection = () => {
               <div className="mt-4 flex justify-end">
                 <Button 
                   variant="default"
-                  onClick={() => {
-                    toast({
-                      title: "Bulk Action",
-                      description: "Functionality to schedule all shortlisted candidates would appear here",
-                    });
-                  }}
+                  onClick={handleScheduleSelectedInterviews}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
                   Schedule All Interviews
@@ -759,6 +808,20 @@ const CandidateMatchesSection = () => {
               
               <FormField
                 control={groupScheduleForm.control}
+                name="interval"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time Between Interviews (minutes)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="30" {...field} required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={groupScheduleForm.control}
                 name="position"
                 render={({ field }) => (
                   <FormItem>
@@ -784,6 +847,43 @@ const CandidateMatchesSection = () => {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isResumeDialogOpen} onOpenChange={setIsResumeDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Candidate Resume</DialogTitle>
+            <DialogDescription>
+              Resume for {currentCandidate?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="bg-muted p-4 rounded-md min-h-[300px] flex flex-col items-center justify-center">
+              {currentCandidate?.resumeUrl ? (
+                <div className="text-center">
+                  <FileText className="h-16 w-16 mx-auto mb-4 text-primary" />
+                  <p className="mb-2">Resume preview available</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {currentCandidate.name}'s resume ({currentCandidate.resumeUrl.split('/').pop()})
+                  </p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No resume available for this candidate</p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsResumeDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={downloadResume} disabled={!currentCandidate?.resumeUrl}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Resume
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

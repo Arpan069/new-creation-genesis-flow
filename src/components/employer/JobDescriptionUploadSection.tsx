@@ -4,13 +4,16 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, FileText, X, Search, Globe } from "lucide-react";
+import { Upload, Loader2, FileText, X, Search, Globe, MapPin, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const JobDescriptionUploadSection = () => {
   const { toast } = useToast();
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -76,6 +79,13 @@ const JobDescriptionUploadSection = () => {
     }
   };
 
+  const experienceOptions = [
+    { value: "0-2", label: "0-2 years" },
+    { value: "3-5", label: "3-5 years" },
+    { value: "5-8", label: "5-8 years" },
+    { value: "8+", label: "8+ years" }
+  ];
+
   return (
     <Card className="glass-morphism">
       <CardHeader>
@@ -99,6 +109,44 @@ const JobDescriptionUploadSection = () => {
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium mb-1">
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-1" />
+                Location
+              </div>
+            </label>
+            <Input
+              id="location"
+              placeholder="e.g. New York, Remote"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="experience" className="block text-sm font-medium mb-1">
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
+                Experience Required
+              </div>
+            </label>
+            <Select value={yearsOfExperience} onValueChange={setYearsOfExperience}>
+              <SelectTrigger id="experience">
+                <SelectValue placeholder="Select experience range" />
+              </SelectTrigger>
+              <SelectContent>
+                {experienceOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div>
