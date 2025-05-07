@@ -29,6 +29,7 @@ const InterviewPage = () => {
   const { 
     isInterviewStarted, 
     isRecording,
+    isProcessingAI,
     currentQuestion, 
     transcript,
     startInterview: startInterviewLogic, 
@@ -76,7 +77,11 @@ const InterviewPage = () => {
           <ThemeToggle />
         </div>
         
-        <InterviewHeader onEndInterview={endInterview} isRecording={isRecording} />
+        <InterviewHeader 
+          onEndInterview={endInterview} 
+          isRecording={isRecording} 
+          isProcessingAI={isProcessingAI} 
+        />
         
         <main className="flex-1 flex flex-col md:flex-row gap-4 p-4 overflow-auto container mx-auto">
           {/* Left side - AI Avatar */}

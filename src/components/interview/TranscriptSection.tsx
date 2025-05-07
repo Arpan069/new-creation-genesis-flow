@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Copy, Mic } from "lucide-react";
+import { Download, Copy, Mic, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -19,7 +19,7 @@ interface TranscriptSectionProps {
 
 /**
  * TranscriptSection component for displaying the interview transcript
- * Includes real-time updates from Whisper transcription
+ * Includes real-time updates from Whisper transcription and OpenAI responses
  * 
  * @param transcript - Array of transcript messages to display
  */
@@ -93,6 +93,15 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
   const isRealTimeTranscription = (speaker: string): boolean => {
     return speaker.includes('Transcribed');
   };
+
+  /**
+   * Determine if a message is from the AI interviewer
+   * @param speaker - The speaker label from the message
+   * @returns Boolean indicating if message is from AI
+   */
+  const isAIInterviewer = (speaker: string): boolean => {
+    return speaker === 'AI Interviewer';
+  };
   
   return (
     <Card className="flex-grow glass-morphism border-primary/10">
@@ -104,6 +113,14 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
             <div className="flex items-center gap-1 bg-green-500/10 text-green-500 text-xs rounded-full px-2 py-0.5">
               <Mic size={12} className="animate-pulse" />
               <span>Real-time</span>
+            </div>
+          )}
+          
+          {/* Show indicator when we have AI responses */}
+          {transcript.some(msg => isAIInterviewer(msg.speaker)) && (
+            <div className="flex items-center gap-1 bg-blue-500/10 text-blue-500 text-xs rounded-full px-2 py-0.5">
+              <MessageSquare size={12} />
+              <span>AI Responses</span>
             </div>
           )}
         </div>
@@ -145,6 +162,7 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
             ) : (
               transcript.map((message, index) => {
                 const isRealTime = isRealTimeTranscription(message.speaker);
+                const isAI = isAIInterviewer(message.speaker);
                 
                 return (
                   <motion.div 
@@ -157,14 +175,15 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
                     <div className="flex items-center gap-2 mb-1">
                       {/* Speaker name with appropriate styling based on speaker type */}
                       <span className={`font-medium ${
-                        message.speaker === 'AI Interviewer' 
-                          ? 'text-primary' 
+                        isAI 
+                          ? 'text-blue-500' 
                           : isRealTime 
                             ? 'text-green-500' 
                             : 'text-foreground'
                       }`}>
                         {message.speaker}
                         {isRealTime && <Mic size={12} className="inline ml-1" />}
+                        {isAI && <MessageSquare size={12} className="inline ml-1" />}
                       </span>
                       
                       {/* Timestamp */}
@@ -173,8 +192,14 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
                       </span>
                     </div>
                     
-                    {/* Message text */}
-                    <p className={`text-sm pl-0 ${isRealTime ? 'bg-green-500/5 p-2 rounded-md' : ''}`}>
+                    {/* Message text with styling based on speaker */}
+                    <p className={`text-sm pl-0 ${
+                      isAI 
+                        ? 'bg-blue-500/5 p-2 rounded-md border-l-2 border-blue-500' 
+                        : isRealTime 
+                          ? 'bg-green-500/5 p-2 rounded-md' 
+                          : ''
+                    }`}>
                       {message.text}
                     </p>
                   </motion.div>

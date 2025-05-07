@@ -1,8 +1,8 @@
-
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
 import { whisperService } from "@/services/whisperService";
+import { openaiService } from "@/services/openaiService"; // Import the new OpenAI service
 import { toast } from "@/hooks/use-toast";
 import { TranscriptItem } from "@/types/interview";
 
@@ -31,9 +31,12 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   const [currentCodingQuestion, setCurrentCodingQuestion] = useState("");
   const [showCodingChallenge, setShowCodingChallenge] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
 
-  // Reference to keep track of transcription status
+  // References to keep track of transcription and AI response status
   const transcriptionInProgress = useRef(false);
+  const lastProcessedTranscript = useRef<string>("");
+  const isAIResponding = useRef(false);
   
   // Interview questions - defined statically for this demo
   const [questions] = useState([
@@ -54,6 +57,106 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   ]);
 
   /**
+   * Process transcript with OpenAI to generate interviewer response
+   * @param transcriptText The transcribed text to process
+   */
+  const processWithOpenAI = useCallback(async (transcriptText: string) => {
+    // Avoid processing if AI is already responding or no new content
+    if (isAIResponding.current || transcriptText === lastProcessedTranscript.current) {
+      return;
+    }
+    
+    try {
+      isAIResponding.current = true;
+      setIsProcessingAI(true);
+      
+      // Update reference to avoid reprocessing same text
+      lastProcessedTranscript.current = transcriptText;
+      
+      // Process with OpenAI
+      const aiResponse = await openaiService.processTranscript(
+        transcriptText,
+        currentQuestion,
+        { 
+          temperature: 0.7,
+          systemPrompt: `You are an AI interviewer conducting a job interview. 
+          Your name is AI Interviewer. You are currently asking: "${currentQuestion}"
+          Respond to the candidate's answer. Keep your response brief (2-3 sentences maximum).
+          Be conversational but professional. Ask thoughtful follow-up questions when appropriate.`
+        }
+      );
+      
+      // Add AI response to transcript
+      addToTranscript("AI Interviewer", aiResponse);
+      
+      // Convert AI response to speech if system audio is enabled
+      if (isSystemAudioOn) {
+        try {
+          const audioBlob = await openaiService.textToSpeech(aiResponse);
+          await openaiService.playAudio(audioBlob);
+          
+          // After speech finishes, consider moving to next question if appropriate
+          const shouldAdvance = aiResponse.includes("next question") || 
+                               aiResponse.includes("Let's move on");
+          
+          if (shouldAdvance) {
+            // Advance to next question after speech completes
+            advanceToNextQuestion();
+          }
+        } catch (error) {
+          console.error("TTS error:", error);
+          // Fall back to silent mode if TTS fails
+        }
+      }
+    } catch (error) {
+      console.error("AI processing error:", error);
+      toast({
+        title: "AI Processing Error",
+        description: "Failed to generate AI response",
+        variant: "destructive",
+      });
+    } finally {
+      isAIResponding.current = false;
+      setIsProcessingAI(false);
+    }
+  }, [currentQuestion, isSystemAudioOn]);
+
+  /**
+   * Advance to the next interview question
+   */
+  const advanceToNextQuestion = useCallback(() => {
+    // Get index of current question
+    const currentIndex = questions.indexOf(currentQuestion);
+    
+    // Move to the next question if available
+    if (currentIndex < questions.length - 1) {
+      const nextQuestion = questions[currentIndex + 1];
+      setCurrentQuestion(nextQuestion);
+      
+      // Add next question to transcript
+      addToTranscript("AI Interviewer", nextQuestion);
+      
+      // Speak the next question
+      speakText(nextQuestion);
+      
+      // After the third question, introduce coding challenge
+      if (currentIndex === 2) {
+        setTimeout(() => {
+          const codingIntro = "Now let's move on to a coding challenge. Please switch to the coding tab to solve the problem.";
+          addToTranscript("AI Interviewer", codingIntro);
+          speakText(codingIntro);
+          setShowCodingChallenge(true);
+        }, 1500);
+      }
+    } else {
+      // End of interview message
+      const endMessage = "Thank you for your time. The interview is now complete.";
+      addToTranscript("AI Interviewer", endMessage);
+      speakText(endMessage);
+    }
+  }, [currentQuestion, questions]);
+
+  /**
    * Callback function for handling real-time transcriptions 
    * @param text The transcribed text from Whisper API
    */
@@ -65,8 +168,14 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
         text: text,
         timestamp: new Date()
       }]);
+      
+      // Process the transcription with OpenAI to generate a response
+      // Add a slight delay to collect more context before processing
+      setTimeout(() => {
+        processWithOpenAI(text);
+      }, 500);
     }
-  }, []);
+  }, [processWithOpenAI]);
 
   /**
    * Start the interview and recording
@@ -210,15 +319,25 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   };
 
   /**
-   * Simulate AI speaking text (would integrate with TTS in production)
+   * Speak text using OpenAI TTS (if system audio is on)
    * @param text Text to speak
    */
-  const speakText = (text: string) => {
+  const speakText = async (text: string) => {
     if (!isSystemAudioOn) return;
     
-    // Here you would normally integrate with a text-to-speech API
-    // For now, we'll just simulate the AI speaking with a console log
-    console.log("AI Speaking:", text);
+    try {
+      // Generate speech using OpenAI TTS API
+      const audioBlob = await openaiService.textToSpeech(text, {
+        voice: "nova", // Professional voice for interviewer
+        speed: 1.0    // Normal speaking rate
+      });
+      
+      // Play the audio
+      await openaiService.playAudio(audioBlob);
+    } catch (error) {
+      console.error("Error speaking text:", error);
+      // Silently fail - interviewer will just not speak
+    }
   };
 
   /**
@@ -282,6 +401,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     simulateAnswer,
     currentCodingQuestion,
     showCodingChallenge,
-    videoUrl
+    videoUrl,
+    isProcessingAI
   };
 };
