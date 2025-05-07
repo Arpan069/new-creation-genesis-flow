@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Copy } from "lucide-react";
+import { Download, Copy, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +17,12 @@ interface TranscriptSectionProps {
   transcript: TranscriptMessage[];
 }
 
+/**
+ * TranscriptSection component for displaying the interview transcript
+ * Includes real-time updates from Whisper transcription
+ * 
+ * @param transcript - Array of transcript messages to display
+ */
 const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
@@ -30,12 +36,18 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
     }
   }, [transcript]);
   
-  // Format timestamp
+  /**
+   * Format timestamp into a readable time string
+   * @param date - Date object to format
+   * @returns Formatted time string (HH:MM)
+   */
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
   
-  // Copy transcript to clipboard
+  /**
+   * Copy transcript to clipboard
+   */
   const copyTranscript = () => {
     const text = transcript
       .map(msg => `[${formatTime(msg.timestamp)}] ${msg.speaker}: ${msg.text}`)
@@ -49,7 +61,9 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
     });
   };
   
-  // Download transcript
+  /**
+   * Download transcript as a text file
+   */
   const downloadTranscript = () => {
     const text = transcript
       .map(msg => `[${formatTime(msg.timestamp)}] ${msg.speaker}: ${msg.text}`)
@@ -71,10 +85,28 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
     });
   };
   
+  /**
+   * Determine if a message is from real-time transcription
+   * @param speaker - The speaker label from the message
+   * @returns Boolean indicating if message is from real-time transcription
+   */
+  const isRealTimeTranscription = (speaker: string): boolean => {
+    return speaker.includes('Transcribed');
+  };
+  
   return (
     <Card className="flex-grow glass-morphism border-primary/10">
       <CardHeader className="p-4 flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Transcript</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-lg">Transcript</CardTitle>
+          {/* Show indicator when we have real-time transcriptions */}
+          {transcript.some(msg => isRealTimeTranscription(msg.speaker)) && (
+            <div className="flex items-center gap-1 bg-green-500/10 text-green-500 text-xs rounded-full px-2 py-0.5">
+              <Mic size={12} className="animate-pulse" />
+              <span>Real-time</span>
+            </div>
+          )}
+        </div>
         
         <div className="flex gap-2">
           <Button 
@@ -83,6 +115,7 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
             size="icon" 
             className="h-8 w-8"
             disabled={transcript.length === 0}
+            title="Copy transcript"
           >
             <Copy size={14} />
           </Button>
@@ -92,6 +125,7 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
             size="icon" 
             className="h-8 w-8" 
             disabled={transcript.length === 0}
+            title="Download transcript"
           >
             <Download size={14} />
           </Button>
@@ -103,28 +137,49 @@ const TranscriptSection: React.FC<TranscriptSectionProps> = ({ transcript }) => 
           <div className="p-4 space-y-4">
             {transcript.length === 0 ? (
               <div className="flex items-center justify-center h-[250px] text-muted-foreground">
-                Interview transcript will appear here
+                <div className="text-center">
+                  <p className="mb-2">Interview transcript will appear here</p>
+                  <p className="text-xs">Real-time transcription will begin when recording starts</p>
+                </div>
               </div>
             ) : (
-              transcript.map((message, index) => (
-                <motion.div 
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex flex-col"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`font-medium ${message.speaker === 'AI Interviewer' ? 'text-primary' : 'text-foreground'}`}>
-                      {message.speaker}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(message.timestamp)}
-                    </span>
-                  </div>
-                  <p className="text-sm pl-0">{message.text}</p>
-                </motion.div>
-              ))
+              transcript.map((message, index) => {
+                const isRealTime = isRealTimeTranscription(message.speaker);
+                
+                return (
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {/* Speaker name with appropriate styling based on speaker type */}
+                      <span className={`font-medium ${
+                        message.speaker === 'AI Interviewer' 
+                          ? 'text-primary' 
+                          : isRealTime 
+                            ? 'text-green-500' 
+                            : 'text-foreground'
+                      }`}>
+                        {message.speaker}
+                        {isRealTime && <Mic size={12} className="inline ml-1" />}
+                      </span>
+                      
+                      {/* Timestamp */}
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(message.timestamp)}
+                      </span>
+                    </div>
+                    
+                    {/* Message text */}
+                    <p className={`text-sm pl-0 ${isRealTime ? 'bg-green-500/5 p-2 rounded-md' : ''}`}>
+                      {message.text}
+                    </p>
+                  </motion.div>
+                );
+              })
             )}
           </div>
         </ScrollArea>

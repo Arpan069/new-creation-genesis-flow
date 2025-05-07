@@ -1,5 +1,6 @@
 
 import { toast } from "@/hooks/use-toast";
+import { whisperService } from "@/services/whisperService";
 
 // Configuration for video recording
 // EDIT THIS SECTION TO CHANGE THE STORAGE LOCATION
@@ -7,12 +8,15 @@ const VIDEO_STORAGE_CONFIG = {
   // Change this path to your preferred storage location
   // For web apps, this would typically use IndexedDB or localStorage references
   // In a production environment, you might want to use a server endpoint
-  storagePath: "interview_recordings",
+  storagePath: "interview_recordings", // <-- EDIT THIS PATH to change the storage location
 };
 
 interface RecordingOptions {
   fileName?: string;
   mimeType?: string;
+  // Configuration for real-time transcription
+  enableRealTimeTranscription?: boolean;
+  transcriptionCallback?: (text: string) => void;
 }
 
 export class VideoRecorder {
@@ -20,16 +24,19 @@ export class VideoRecorder {
   private recordedChunks: Blob[] = [];
   private stream: MediaStream | null = null;
   private isRecording = false;
-
+  private transcriptionInterval: ReturnType<typeof setInterval> | null = null;
+  private audioChunksForTranscription: Blob[] = [];
+  
   /**
    * Start recording from a given media stream
    * @param stream The media stream to record from
-   * @param options Recording options
+   * @param options Recording options including transcription settings
    * @returns Promise that resolves when recording starts
    */
   startRecording(stream: MediaStream, options: RecordingOptions = {}): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // Check if already recording
         if (this.isRecording) {
           reject(new Error("Already recording"));
           return;
@@ -37,33 +44,51 @@ export class VideoRecorder {
 
         this.stream = stream;
         this.recordedChunks = [];
+        this.audioChunksForTranscription = [];
         
+        // Determine the best supported mime type
         const mimeType = options.mimeType || 'video/webm;codecs=vp9';
         
         if (!MediaRecorder.isTypeSupported(mimeType)) {
           console.warn(`${mimeType} is not supported, falling back to default`);
         }
 
+        // Initialize the media recorder
         this.mediaRecorder = new MediaRecorder(stream, {
           mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : 'video/webm'
         });
 
+        // Collect data chunks as they become available
         this.mediaRecorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             this.recordedChunks.push(event.data);
+            
+            // If real-time transcription is enabled, collect audio for transcription
+            if (options.enableRealTimeTranscription) {
+              this.audioChunksForTranscription.push(event.data);
+            }
           }
         };
 
+        // Handle recording start event
         this.mediaRecorder.onstart = () => {
           this.isRecording = true;
+          
+          // Set up real-time transcription if enabled
+          if (options.enableRealTimeTranscription && options.transcriptionCallback) {
+            this.setupRealTimeTranscription(options.transcriptionCallback);
+          }
+          
           resolve();
         };
 
+        // Handle recording errors
         this.mediaRecorder.onerror = (event) => {
           console.error("Recording error:", event);
           reject(new Error("Error during recording"));
         };
 
+        // Start recording in chunks (1 second intervals)
         this.mediaRecorder.start(1000); // Capture in 1-second chunks
       } catch (error) {
         console.error("Failed to start recording:", error);
@@ -73,28 +98,71 @@ export class VideoRecorder {
   }
 
   /**
+   * Set up real-time transcription at regular intervals
+   * @param callback Function to call with transcription text
+   */
+  private setupRealTimeTranscription(callback: (text: string) => void): void {
+    // Clear any existing transcription interval
+    if (this.transcriptionInterval) {
+      clearInterval(this.transcriptionInterval);
+    }
+    
+    // Set up new interval for transcription (every 5 seconds)
+    this.transcriptionInterval = setInterval(async () => {
+      if (this.audioChunksForTranscription.length > 0) {
+        try {
+          // Create a blob from the collected audio chunks
+          const audioBlob = new Blob(this.audioChunksForTranscription, { type: 'audio/webm' });
+          this.audioChunksForTranscription = []; // Clear for next batch
+          
+          // Send to Whisper API for transcription
+          const result = await whisperService.transcribeRealTime(audioBlob);
+          
+          // Call the callback with the transcribed text
+          if (result.text) {
+            callback(result.text);
+          }
+        } catch (error) {
+          console.error("Real-time transcription error:", error);
+        }
+      }
+    }, 5000); // Process every 5 seconds
+  }
+
+  /**
    * Stop the current recording
    * @returns Promise with the recording blob
    */
   stopRecording(): Promise<Blob> {
     return new Promise((resolve, reject) => {
+      // Check if recording is active
       if (!this.mediaRecorder || !this.isRecording) {
         reject(new Error("Not recording"));
         return;
       }
 
+      // Clear transcription interval if it exists
+      if (this.transcriptionInterval) {
+        clearInterval(this.transcriptionInterval);
+        this.transcriptionInterval = null;
+      }
+
+      // Handle recording stop event
       this.mediaRecorder.onstop = () => {
         this.isRecording = false;
         
+        // Check if we have recorded data
         if (this.recordedChunks.length === 0) {
           reject(new Error("No data recorded"));
           return;
         }
 
+        // Create blob from recorded chunks
         const recordedBlob = new Blob(this.recordedChunks, { type: this.recordedChunks[0].type });
         resolve(recordedBlob);
       };
 
+      // Stop the recording
       this.mediaRecorder.stop();
     });
   }
@@ -107,6 +175,7 @@ export class VideoRecorder {
    */
   async saveRecording(blob: Blob, fileName?: string): Promise<string> {
     try {
+      // Generate a filename if not provided
       const name = fileName || `interview-${new Date().toISOString().replace(/[:.]/g, "-")}`;
       const fullPath = `${VIDEO_STORAGE_CONFIG.storagePath}/${name}.webm`;
       
@@ -156,6 +225,7 @@ export class VideoRecorder {
    * Clean up resources
    */
   cleanup(): void {
+    // Stop media recorder if active
     if (this.mediaRecorder) {
       if (this.isRecording) {
         this.mediaRecorder.stop();
@@ -163,14 +233,24 @@ export class VideoRecorder {
       this.mediaRecorder = null;
     }
     
+    // Stop and clean up media stream
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
     
+    // Clear transcription interval
+    if (this.transcriptionInterval) {
+      clearInterval(this.transcriptionInterval);
+      this.transcriptionInterval = null;
+    }
+    
+    // Reset recording state
     this.isRecording = false;
     this.recordedChunks = [];
+    this.audioChunksForTranscription = [];
   }
 }
 
+// Export a singleton instance for use throughout the app
 export const videoRecorder = new VideoRecorder();

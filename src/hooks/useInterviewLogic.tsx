@@ -1,18 +1,29 @@
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
-import { elevenLabsService } from "@/services/elevenLabsService";
+import { whisperService } from "@/services/whisperService";
 import { toast } from "@/hooks/use-toast";
 import { TranscriptItem } from "@/types/interview";
 
+/**
+ * Interface for transcript items in the interview
+ */
 interface Transcript {
-  speaker: string;
-  text: string;
-  timestamp: Date;
+  speaker: string;   // Who is speaking (AI or candidate)
+  text: string;      // The content of the speech
+  timestamp: Date;   // When the speech occurred
 }
 
+/**
+ * Custom hook for managing interview logic and state
+ * @param isSystemAudioOn - Whether system audio is enabled
+ */
 export const useInterviewLogic = (isSystemAudioOn: boolean) => {
+  // Navigation hook for redirecting after interview
   const navigate = useNavigate();
+  
+  // Core interview state
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState("");
@@ -24,7 +35,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   // Reference to keep track of transcription status
   const transcriptionInProgress = useRef(false);
   
-  // Interview questions
+  // Interview questions - defined statically for this demo
   const [questions] = useState([
     "Tell me a little about yourself and your background.",
     "What interests you about this position?",
@@ -33,7 +44,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     "Where do you see yourself professionally in five years?",
   ]);
 
-  // Coding questions
+  // Coding questions - defined statically for this demo
   const [codingQuestions] = useState([
     "Write a function that finds the longest substring without repeating characters in a given string.",
     "Implement a function to check if a given string is a palindrome.",
@@ -42,14 +53,39 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     "Implement a binary search algorithm to find a target value in a sorted array.",
   ]);
 
-  // Start the interview and recording
+  /**
+   * Callback function for handling real-time transcriptions 
+   * @param text The transcribed text from Whisper API
+   */
+  const handleRealTimeTranscription = useCallback((text: string) => {
+    if (text.trim()) {
+      // Add transcribed text to the transcript
+      setTranscript(prev => [...prev, {
+        speaker: "You (Transcribed)",
+        text: text,
+        timestamp: new Date()
+      }]);
+    }
+  }, []);
+
+  /**
+   * Start the interview and recording
+   * @param stream Media stream to record from
+   */
   const startInterview = useCallback(async (stream: MediaStream) => {
     try {
+      // Set interview as started
       setIsInterviewStarted(true);
+      // Set the first question
       setCurrentQuestion(questions[0]);
       
-      // Start recording
-      await videoRecorder.startRecording(stream);
+      // Start recording with real-time transcription enabled
+      await videoRecorder.startRecording(stream, {
+        enableRealTimeTranscription: true,
+        transcriptionCallback: handleRealTimeTranscription
+      });
+      
+      // Update recording state
       setIsRecording(true);
       
       // Add initial AI question to transcript
@@ -58,12 +94,13 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       // Set initial coding question but don't show it yet
       setCurrentCodingQuestion(codingQuestions[0]);
       
-      // Simulate AI speaking
+      // Simulate AI speaking the question
       speakText(questions[0]);
       
+      // Notify user that interview has started
       toast({
         title: "Interview started",
-        description: "Recording in progress...",
+        description: "Recording in progress with real-time transcription...",
       });
     } catch (error) {
       console.error("Failed to start interview:", error);
@@ -73,9 +110,11 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
         variant: "destructive",
       });
     }
-  }, [questions, codingQuestions]);
+  }, [questions, codingQuestions, handleRealTimeTranscription]);
 
-  // End the interview and save recording
+  /**
+   * End the interview and save recording
+   */
   const endInterview = useCallback(async () => {
     try {
       if (isRecording) {
@@ -87,9 +126,9 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
         const url = await videoRecorder.saveRecording(recordedBlob);
         setVideoUrl(url);
         
-        // Generate transcript if it hasn't been done yet
-        if (!transcriptionInProgress.current && transcript.length > 0) {
-          generateTranscript(recordedBlob);
+        // Final transcription of the full recording for completeness
+        if (!transcriptionInProgress.current) {
+          generateFullTranscript(recordedBlob);
         }
         
         toast({
@@ -109,51 +148,47 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       });
       navigate("/candidate/dashboard");
     }
-  }, [isRecording, navigate, transcript]);
+  }, [isRecording, navigate]);
 
-  // Generate transcript from recording
-  const generateTranscript = useCallback(async (audioOrVideoBlob: Blob) => {
+  /**
+   * Generate a complete transcript from the full recording
+   * @param audioOrVideoBlob The complete recording blob
+   */
+  const generateFullTranscript = useCallback(async (audioOrVideoBlob: Blob) => {
     try {
       transcriptionInProgress.current = true;
       toast({
-        title: "Generating transcript",
-        description: "This may take a moment...",
+        title: "Finalizing transcript",
+        description: "Processing complete interview...",
       });
       
-      const result = await elevenLabsService.transcribe(audioOrVideoBlob, {
+      // Send the complete recording to Whisper for transcription
+      const result = await whisperService.transcribe(audioOrVideoBlob, {
         language: "en", // Default to English
       });
       
-      // Parse the result and update transcript
+      // Parse the result and update transcript with a final, complete version
       if (result.text) {
-        // This is a simple implementation; in a real app, you'd want to 
-        // parse timestamps and speaker labels more accurately
-        const newTranscriptItem: TranscriptItem = {
-          speaker: "Candidate",
-          text: result.text,
-          timestamp: new Date().toISOString()
-        };
-        
-        // Add to state in a format compatible with your app
+        // Add a final, complete transcription to the end of the transcript
         setTranscript(prev => [
           ...prev, 
           {
-            speaker: "Candidate (Transcribed)",
+            speaker: "Complete Interview Transcript",
             text: result.text,
             timestamp: new Date()
           }
         ]);
         
         toast({
-          title: "Transcript generated",
-          description: "Interview transcript has been created",
+          title: "Transcript finalized",
+          description: "Complete interview transcript has been created",
         });
       }
     } catch (error) {
-      console.error("Transcription error:", error);
+      console.error("Final transcription error:", error);
       toast({
-        title: "Transcription failed",
-        description: "Could not generate transcript from recording",
+        title: "Final transcription incomplete",
+        description: "Could not generate complete transcript from recording",
         variant: "destructive",
       });
     } finally {
@@ -161,7 +196,11 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     }
   }, []);
 
-  // Add message to transcript
+  /**
+   * Add a message to the transcript
+   * @param speaker Who is speaking
+   * @param text What they said
+   */
   const addToTranscript = (speaker: string, text: string) => {
     setTranscript(prev => [...prev, {
       speaker,
@@ -170,7 +209,10 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     }]);
   };
 
-  // Simulate AI speaking text
+  /**
+   * Simulate AI speaking text (would integrate with TTS in production)
+   * @param text Text to speak
+   */
   const speakText = (text: string) => {
     if (!isSystemAudioOn) return;
     
@@ -179,11 +221,13 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     console.log("AI Speaking:", text);
   };
 
-  // Simulate candidate's answer and progress to next question
+  /**
+   * Simulate candidate's answer and progress to next question
+   * This is a demo function - in production this would be triggered by 
+   * actual candidate responses detected by the transcription
+   */
   const simulateAnswer = () => {
-    // In a real app, this would be triggered by speech recognition
-    // For demonstration, we'll use a button
-    
+    // Get index of current question
     const currentIndex = questions.indexOf(currentQuestion);
     
     // Add simulated answer to transcript
@@ -194,7 +238,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       const nextQuestion = questions[currentIndex + 1];
       setCurrentQuestion(nextQuestion);
       
-      // Add next question to transcript
+      // Add next question to transcript with delay for natural conversation flow
       setTimeout(() => {
         addToTranscript("AI Interviewer", nextQuestion);
         speakText(nextQuestion);
@@ -210,7 +254,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
         }
       }, 1000);
     } else {
-      // End of interview
+      // End of interview message
       setTimeout(() => {
         addToTranscript("AI Interviewer", "Thank you for your time. The interview is now complete.");
         speakText("Thank you for your time. The interview is now complete.");
