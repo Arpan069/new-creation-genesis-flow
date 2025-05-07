@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import InterviewHeader from "@/components/interview/InterviewHeader";
 import InterviewAvatar from "@/components/interview/InterviewAvatar";
@@ -11,6 +11,7 @@ import { useInterviewLogic } from "@/hooks/useInterviewLogic";
 import { Card, CardContent } from "@/components/ui/card";
 import EnhancedBackground from "@/components/EnhancedBackground";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { toast } from "@/hooks/use-toast";
 
 const InterviewPage = () => {
   const { 
@@ -21,18 +22,52 @@ const InterviewPage = () => {
     isLoading, 
     toggleVideo, 
     toggleAudio, 
-    toggleSystemAudio 
+    toggleSystemAudio,
+    mediaStream
   } = useInterviewMedia();
   
   const { 
     isInterviewStarted, 
+    isRecording,
     currentQuestion, 
     transcript,
-    startInterview, 
+    startInterview: startInterviewLogic, 
     endInterview,
     simulateAnswer,
     currentCodingQuestion
   } = useInterviewLogic(isSystemAudioOn);
+
+  // Start interview with recording when user clicks start button
+  const handleStartInterview = async () => {
+    if (!mediaStream) {
+      toast({
+        title: "Camera/Microphone required",
+        description: "Please enable your camera and microphone to start the interview",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Start interview logic with media stream for recording
+    await startInterviewLogic(mediaStream);
+  };
+
+  // Warn before unload if interview is in progress
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isInterviewStarted && !confirm("Are you sure you want to leave? Your interview progress will be lost.")) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isInterviewStarted]);
 
   return (
     <EnhancedBackground intensity="light" variant="default">
@@ -41,7 +76,7 @@ const InterviewPage = () => {
           <ThemeToggle />
         </div>
         
-        <InterviewHeader onEndInterview={endInterview} />
+        <InterviewHeader onEndInterview={endInterview} isRecording={isRecording} />
         
         <main className="flex-1 flex flex-col md:flex-row gap-4 p-4 overflow-auto container mx-auto">
           {/* Left side - AI Avatar */}
@@ -51,7 +86,7 @@ const InterviewPage = () => {
             transition={{ duration: 0.5 }}
             className="w-full md:w-1/2 flex flex-col gap-4"
           >
-            <Card className="relative overflow-hidden glass-morphism border-primary/10 h-[calc(100vh-300px)]"> {/* Added fixed height */}
+            <Card className="relative overflow-hidden glass-morphism border-primary/10 h-[calc(100vh-300px)]"> 
               <CardContent className="p-0 h-full flex flex-col justify-center items-center">
                 <InterviewAvatar 
                   isInterviewStarted={isInterviewStarted}
@@ -65,7 +100,7 @@ const InterviewPage = () => {
               isInterviewStarted={isInterviewStarted}
               currentQuestion={currentQuestion}
               simulateAnswer={simulateAnswer}
-              startInterview={startInterview}
+              startInterview={handleStartInterview}
               isLoading={isLoading}
             />
           </motion.div>
@@ -85,6 +120,7 @@ const InterviewPage = () => {
               toggleVideo={toggleVideo}
               toggleAudio={toggleAudio}
               toggleSystemAudio={toggleSystemAudio}
+              isRecording={isRecording}
             />
             
             <InterviewTabs 
@@ -99,4 +135,3 @@ const InterviewPage = () => {
 };
 
 export default InterviewPage;
-

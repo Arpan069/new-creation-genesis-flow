@@ -1,34 +1,39 @@
 
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { XCircle } from "lucide-react";
+import { ChevronLeft, X, Circle } from "lucide-react";
 
 interface InterviewHeaderProps {
   onEndInterview: () => void;
+  isRecording?: boolean;
 }
 
-const InterviewHeader = ({ onEndInterview }: InterviewHeaderProps) => {
-  const navigate = useNavigate();
-
-  const handleEndInterview = () => {
-    navigate("/candidate/dashboard");
-  };
-
+const InterviewHeader = ({ onEndInterview, isRecording }: InterviewHeaderProps) => {
   return (
-    <header className="w-full py-4 px-4 border-b bg-background/80 backdrop-blur-md z-40 relative">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <img
-            src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png"
-            alt="Vinte AI Interview Logo"
-            className="h-12" // Increased from h-8 to h-12
-          />
-        </Link>
+    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center justify-between">
+        {/* Back button */}
+        <Button variant="ghost" onClick={onEndInterview} className="flex items-center gap-1">
+          <ChevronLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
 
-        <Button variant="outline" className="gap-2" onClick={handleEndInterview}>
-          <XCircle className="h-4 w-4" />
-          <span>End Interview</span>
+        {/* Title with recording indicator */}
+        <div className="flex items-center gap-2">
+          {isRecording && (
+            <Circle className="h-3 w-3 fill-red-500 text-red-500 animate-pulse" />
+          )}
+          <h1 className="text-lg font-semibold">AI Interview</h1>
+        </div>
+
+        {/* End button */}
+        <Button 
+          variant="ghost" 
+          onClick={onEndInterview}
+          className="text-destructive"
+        >
+          <X className="h-4 w-4 mr-1" />
+          End Interview
         </Button>
       </div>
     </header>

@@ -8,6 +8,9 @@ export const useInterviewMedia = () => {
   const [isSystemAudioOn, setIsSystemAudioOn] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  
+  // New state to expose media stream to other components
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   // Initialize user media stream
   useEffect(() => {
@@ -20,6 +23,7 @@ export const useInterviewMedia = () => {
           });
           
           mediaStreamRef.current = stream;
+          setMediaStream(stream); // Set the media stream state
           
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -46,6 +50,7 @@ export const useInterviewMedia = () => {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
         mediaStreamRef.current = null;
+        setMediaStream(null);
       }
     };
   }, []);
@@ -115,6 +120,7 @@ export const useInterviewMedia = () => {
     isLoading,
     toggleVideo,
     toggleAudio,
-    toggleSystemAudio
+    toggleSystemAudio,
+    mediaStream // New: Exposing media stream for recording
   };
 };

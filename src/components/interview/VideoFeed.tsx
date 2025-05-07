@@ -12,6 +12,7 @@ interface VideoFeedProps {
   toggleVideo: () => void;
   toggleAudio: () => void;
   toggleSystemAudio: () => void;
+  isRecording?: boolean;
 }
 
 const VideoFeed = ({
@@ -22,6 +23,7 @@ const VideoFeed = ({
   toggleVideo,
   toggleAudio,
   toggleSystemAudio,
+  isRecording = false,
 }: VideoFeedProps) => {
   return (
     <Card className="relative glass-morphism border-primary/10">
@@ -46,8 +48,17 @@ const VideoFeed = ({
         
         {/* Video indicators */}
         <div className="absolute top-4 left-4 flex items-center gap-2 p-1 px-2 bg-background/70 backdrop-blur-sm rounded-full">
-          <span className="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>
-          <span className="text-xs font-medium">LIVE</span>
+          {isRecording ? (
+            <>
+              <span className="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="text-xs font-medium text-red-500">REC</span>
+            </>
+          ) : (
+            <>
+              <span className="animate-pulse w-2 h-2 bg-green-500 rounded-full"></span>
+              <span className="text-xs font-medium">LIVE</span>
+            </>
+          )}
         </div>
         
         <div className="absolute top-4 right-4 flex items-center gap-2 p-1 px-2 bg-background/70 backdrop-blur-sm rounded-full">

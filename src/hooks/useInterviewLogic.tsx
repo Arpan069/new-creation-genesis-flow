@@ -1,6 +1,9 @@
-
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { videoRecorder } from "@/utils/videoRecording";
+import { elevenLabsService } from "@/services/elevenLabsService";
+import { toast } from "@/hooks/use-toast";
+import { TranscriptItem } from "@/types/interview";
 
 interface Transcript {
   speaker: string;
@@ -11,10 +14,15 @@ interface Transcript {
 export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   const navigate = useNavigate();
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [transcript, setTranscript] = useState<Transcript[]>([]);
   const [currentCodingQuestion, setCurrentCodingQuestion] = useState("");
   const [showCodingChallenge, setShowCodingChallenge] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  // Reference to keep track of transcription status
+  const transcriptionInProgress = useRef(false);
   
   // Interview questions
   const [questions] = useState([
@@ -34,26 +42,124 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     "Implement a binary search algorithm to find a target value in a sorted array.",
   ]);
 
-  // Start the interview
-  const startInterview = () => {
-    setIsInterviewStarted(true);
-    setCurrentQuestion(questions[0]);
-    
-    // Add initial AI question to transcript
-    addToTranscript("AI Interviewer", questions[0]);
-    
-    // Set initial coding question but don't show it yet
-    setCurrentCodingQuestion(codingQuestions[0]);
-    
-    // Simulate AI speaking
-    speakText(questions[0]);
-  };
+  // Start the interview and recording
+  const startInterview = useCallback(async (stream: MediaStream) => {
+    try {
+      setIsInterviewStarted(true);
+      setCurrentQuestion(questions[0]);
+      
+      // Start recording
+      await videoRecorder.startRecording(stream);
+      setIsRecording(true);
+      
+      // Add initial AI question to transcript
+      addToTranscript("AI Interviewer", questions[0]);
+      
+      // Set initial coding question but don't show it yet
+      setCurrentCodingQuestion(codingQuestions[0]);
+      
+      // Simulate AI speaking
+      speakText(questions[0]);
+      
+      toast({
+        title: "Interview started",
+        description: "Recording in progress...",
+      });
+    } catch (error) {
+      console.error("Failed to start interview:", error);
+      toast({
+        title: "Start failed",
+        description: "Could not start interview recording",
+        variant: "destructive",
+      });
+    }
+  }, [questions, codingQuestions]);
 
-  // End the interview
-  const endInterview = () => {
-    // Navigate back to dashboard
-    navigate("/candidate/dashboard");
-  };
+  // End the interview and save recording
+  const endInterview = useCallback(async () => {
+    try {
+      if (isRecording) {
+        // Stop recording and get the blob
+        const recordedBlob = await videoRecorder.stopRecording();
+        setIsRecording(false);
+        
+        // Save the recording and get the URL
+        const url = await videoRecorder.saveRecording(recordedBlob);
+        setVideoUrl(url);
+        
+        // Generate transcript if it hasn't been done yet
+        if (!transcriptionInProgress.current && transcript.length > 0) {
+          generateTranscript(recordedBlob);
+        }
+        
+        toast({
+          title: "Interview completed",
+          description: "Recording saved successfully",
+        });
+      }
+      
+      // Navigate back to dashboard
+      navigate("/candidate/dashboard");
+    } catch (error) {
+      console.error("Error ending interview:", error);
+      toast({
+        title: "Error",
+        description: "Failed to end interview properly",
+        variant: "destructive",
+      });
+      navigate("/candidate/dashboard");
+    }
+  }, [isRecording, navigate, transcript]);
+
+  // Generate transcript from recording
+  const generateTranscript = useCallback(async (audioOrVideoBlob: Blob) => {
+    try {
+      transcriptionInProgress.current = true;
+      toast({
+        title: "Generating transcript",
+        description: "This may take a moment...",
+      });
+      
+      const result = await elevenLabsService.transcribe(audioOrVideoBlob, {
+        language: "en", // Default to English
+      });
+      
+      // Parse the result and update transcript
+      if (result.text) {
+        // This is a simple implementation; in a real app, you'd want to 
+        // parse timestamps and speaker labels more accurately
+        const newTranscriptItem: TranscriptItem = {
+          speaker: "Candidate",
+          text: result.text,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Add to state in a format compatible with your app
+        setTranscript(prev => [
+          ...prev, 
+          {
+            speaker: "Candidate (Transcribed)",
+            text: result.text,
+            timestamp: new Date()
+          }
+        ]);
+        
+        toast({
+          title: "Transcript generated",
+          description: "Interview transcript has been created",
+        });
+      }
+    } catch (error) {
+      console.error("Transcription error:", error);
+      toast({
+        title: "Transcription failed",
+        description: "Could not generate transcript from recording",
+        variant: "destructive",
+      });
+    } finally {
+      transcriptionInProgress.current = false;
+    }
+  }, []);
 
   // Add message to transcript
   const addToTranscript = (speaker: string, text: string) => {
@@ -112,14 +218,26 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     }
   };
 
+  // Clean up on component unmount
+  useEffect(() => {
+    return () => {
+      if (isRecording) {
+        // Attempt to stop recording if component unmounts during recording
+        videoRecorder.cleanup();
+      }
+    };
+  }, [isRecording]);
+
   return {
     isInterviewStarted,
+    isRecording,
     currentQuestion,
     transcript,
     startInterview,
     endInterview,
     simulateAnswer,
     currentCodingQuestion,
-    showCodingChallenge
+    showCodingChallenge,
+    videoUrl
   };
 };
