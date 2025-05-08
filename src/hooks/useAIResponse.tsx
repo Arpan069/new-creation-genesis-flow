@@ -1,6 +1,6 @@
 
 import { useCallback, useRef, useState } from "react";
-import { OpenAIService } from "@/services/openaiService";
+import { OpenAIService } from "@/services/OpenAIService";
 import { toast } from "@/hooks/use-toast";
 import { speakText } from "@/utils/speechUtils";
 

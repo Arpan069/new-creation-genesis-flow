@@ -1,14 +1,14 @@
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
-import { OpenAIService } from "@/services/openaiService";
+import { OpenAIService } from "@/services/OpenAIService";
 import { toast } from "@/hooks/use-toast";
 import { speakText } from "@/utils/speechUtils";
 import { useTranscript } from "@/hooks/useTranscript";
 import { useInterviewQuestions } from "@/hooks/useInterviewQuestions";
 import { useAIResponse } from "@/hooks/useAIResponse";
 import { useRealTimeTranscription } from "@/hooks/useRealTimeTranscription";
-import { Transcript } from "@/types/transcript";
 
 const openAIService = new OpenAIService();
 

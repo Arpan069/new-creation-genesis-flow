@@ -1,6 +1,5 @@
-
 import { toast } from "@/hooks/use-toast";
-import { OpenAIService } from "@/services/openaiService";
+import { OpenAIService } from "@/services/OpenAIService";
 
 // Configuration for video recording
 // EDIT THIS SECTION TO CHANGE THE STORAGE LOCATION

@@ -1,5 +1,5 @@
 
-import { OpenAIService } from "@/services/openaiService";
+import { OpenAIService } from "@/services/OpenAIService";
 
 const openAIService = new OpenAIService();
 
