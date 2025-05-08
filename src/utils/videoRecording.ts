@@ -1,6 +1,6 @@
 
 import { toast } from "@/hooks/use-toast";
-import { whisperService } from "@/services/whisperService";
+import { openAIService } from "@/services/OpenAIService";
 
 // Configuration for video recording
 // EDIT THIS SECTION TO CHANGE THE STORAGE LOCATION
@@ -115,8 +115,8 @@ export class VideoRecorder {
           const audioBlob = new Blob(this.audioChunksForTranscription, { type: 'audio/webm' });
           this.audioChunksForTranscription = []; // Clear for next batch
           
-          // Send to Whisper API for transcription
-          const result = await whisperService.transcribeRealTime(audioBlob);
+          // Send to OpenAI API for transcription
+          const result = await openAIService.transcribeRealTime(audioBlob);
           
           // Call the callback with the transcribed text
           if (result.text) {

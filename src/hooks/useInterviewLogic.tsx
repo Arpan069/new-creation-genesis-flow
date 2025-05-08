@@ -1,10 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
-import { whisperService } from "@/services/whisperService";
-import { openaiService } from "@/services/openaiService"; 
+import { openAIService } from "@/services/OpenAIService";
 import { toast } from "@/hooks/use-toast";
-import { TranscriptItem } from "@/types/interview";
 
 /**
  * Interface for transcript items in the interview
@@ -74,7 +72,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       lastProcessedTranscript.current = transcriptText;
       
       // Process with OpenAI
-      const aiResponse = await openaiService.processTranscript(
+      const aiResponse = await openAIService.generateResponse(
         transcriptText,
         currentQuestion,
         { 
@@ -92,8 +90,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       // Convert AI response to speech if system audio is enabled
       if (isSystemAudioOn) {
         try {
-          const audioBlob = await openaiService.textToSpeech(aiResponse);
-          await openaiService.playAudio(audioBlob);
+          const audioBlob = await openAIService.textToSpeech(aiResponse);
+          await openAIService.playAudio(audioBlob);
           
           // After speech finishes, consider moving to next question if appropriate
           const shouldAdvance = aiResponse.includes("next question") || 
@@ -158,7 +156,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
 
   /**
    * Callback function for handling real-time transcriptions 
-   * @param text The transcribed text from Whisper API
+   * @param text The transcribed text from OpenAI API
    */
   const handleRealTimeTranscription = useCallback((text: string) => {
     if (text.trim()) {
@@ -205,8 +203,6 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       
       // Simulate AI speaking the question
       speakText(questions[0]);
-      
-      // Removed the toast notification about interview starting
     } catch (error) {
       console.error("Failed to start interview:", error);
       toast({
@@ -267,8 +263,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
         description: "Processing complete interview...",
       });
       
-      // Send the complete recording to Whisper for transcription
-      const result = await whisperService.transcribe(audioOrVideoBlob, {
+      // Send the complete recording to OpenAI for transcription
+      const result = await openAIService.transcribe(audioOrVideoBlob, {
         language: "en", // Default to English
       });
       
@@ -323,20 +319,18 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     
     try {
       // Generate speech using OpenAI TTS API
-      const audioBlob = await openaiService.textToSpeech(text, {
+      const audioBlob = await openAIService.textToSpeech(text, {
         voice: "nova", // Professional voice for interviewer
         speed: 1.0    // Normal speaking rate
       });
       
       // Play the audio
-      await openaiService.playAudio(audioBlob);
+      await openAIService.playAudio(audioBlob);
     } catch (error) {
       console.error("Error speaking text:", error);
       // Silently fail - interviewer will just not speak
     }
   };
-
-  // Removed simulateAnswer function since we're creating a more natural conversation flow
 
   // Clean up on component unmount
   useEffect(() => {
