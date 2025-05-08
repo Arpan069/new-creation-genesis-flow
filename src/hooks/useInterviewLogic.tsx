@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
 import { whisperService } from "@/services/whisperService";
-import { openaiService } from "@/services/openaiService"; // Import the new OpenAI service
+import { openaiService } from "@/services/openaiService"; 
 import { toast } from "@/hooks/use-toast";
 import { TranscriptItem } from "@/types/interview";
 
@@ -206,11 +206,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       // Simulate AI speaking the question
       speakText(questions[0]);
       
-      // Notify user that interview has started
-      toast({
-        title: "Interview started",
-        description: "Recording in progress with real-time transcription...",
-      });
+      // Removed the toast notification about interview starting
     } catch (error) {
       console.error("Failed to start interview:", error);
       toast({
@@ -340,46 +336,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     }
   };
 
-  /**
-   * Simulate candidate's answer and progress to next question
-   * This is a demo function - in production this would be triggered by 
-   * actual candidate responses detected by the transcription
-   */
-  const simulateAnswer = () => {
-    // Get index of current question
-    const currentIndex = questions.indexOf(currentQuestion);
-    
-    // Add simulated answer to transcript
-    addToTranscript("You", "This is a simulated answer from the candidate.");
-    
-    // Move to the next question if available
-    if (currentIndex < questions.length - 1) {
-      const nextQuestion = questions[currentIndex + 1];
-      setCurrentQuestion(nextQuestion);
-      
-      // Add next question to transcript with delay for natural conversation flow
-      setTimeout(() => {
-        addToTranscript("AI Interviewer", nextQuestion);
-        speakText(nextQuestion);
-        
-        // After the third question, introduce coding challenge
-        if (currentIndex === 2) {
-          setTimeout(() => {
-            const codingIntro = "Now let's move on to a coding challenge. Please switch to the coding tab to solve the problem.";
-            addToTranscript("AI Interviewer", codingIntro);
-            speakText(codingIntro);
-            setShowCodingChallenge(true);
-          }, 1500);
-        }
-      }, 1000);
-    } else {
-      // End of interview message
-      setTimeout(() => {
-        addToTranscript("AI Interviewer", "Thank you for your time. The interview is now complete.");
-        speakText("Thank you for your time. The interview is now complete.");
-      }, 1000);
-    }
-  };
+  // Removed simulateAnswer function since we're creating a more natural conversation flow
 
   // Clean up on component unmount
   useEffect(() => {
@@ -398,7 +355,6 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     transcript,
     startInterview,
     endInterview,
-    simulateAnswer,
     currentCodingQuestion,
     showCodingChallenge,
     videoUrl,

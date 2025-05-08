@@ -13,6 +13,11 @@ import EnhancedBackground from "@/components/EnhancedBackground";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 
+/**
+ * Main Interview Page Component
+ * Facilitates an AI-powered interview experience with real-time video, 
+ * transcription, and AI-generated responses
+ */
 const InterviewPage = () => {
   const { 
     videoRef, 
@@ -34,11 +39,13 @@ const InterviewPage = () => {
     transcript,
     startInterview: startInterviewLogic, 
     endInterview,
-    simulateAnswer,
     currentCodingQuestion
   } = useInterviewLogic(isSystemAudioOn);
 
-  // Start interview with recording when user clicks start button
+  /**
+   * Start interview with recording when user clicks start button
+   * Checks if media stream is available
+   */
   const handleStartInterview = async () => {
     if (!mediaStream) {
       toast({
@@ -50,10 +57,13 @@ const InterviewPage = () => {
     }
     
     // Start interview logic with media stream for recording
+    // Note: Removed the toast notification about recording in progress
     await startInterviewLogic(mediaStream);
   };
 
-  // Warn before unload if interview is in progress
+  /**
+   * Warn before unload if interview is in progress
+   */
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isInterviewStarted && !confirm("Are you sure you want to leave? Your interview progress will be lost.")) {
@@ -104,7 +114,6 @@ const InterviewPage = () => {
             <QuestionCard 
               isInterviewStarted={isInterviewStarted}
               currentQuestion={currentQuestion}
-              simulateAnswer={simulateAnswer}
               startInterview={handleStartInterview}
               isLoading={isLoading}
             />

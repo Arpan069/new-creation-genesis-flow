@@ -2,20 +2,22 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
 
 interface QuestionCardProps {
   isInterviewStarted: boolean;
   currentQuestion: string;
-  simulateAnswer: () => void;
   startInterview: () => void;
   isLoading: boolean;
 }
 
+/**
+ * QuestionCard component that displays:
+ * - Before interview: Instructions and start button
+ * - During interview: Current question being asked
+ */
 const QuestionCard = ({
   isInterviewStarted,
   currentQuestion,
-  simulateAnswer,
   startInterview,
   isLoading,
 }: QuestionCardProps) => {
@@ -27,12 +29,7 @@ const QuestionCard = ({
             <h3 className="text-lg font-medium mb-2">Current Question:</h3>
             <p className="text-md">{currentQuestion}</p>
           </div>
-          <div className="mt-4 flex justify-center">
-            <Button onClick={simulateAnswer} className="bg-primary hover:bg-primary/90">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Simulate Answer
-            </Button>
-          </div>
+          {/* Removed the Simulate Answer button for a more natural interview flow */}
         </CardContent>
       </Card>
     );
