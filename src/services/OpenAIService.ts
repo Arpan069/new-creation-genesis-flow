@@ -105,9 +105,8 @@ export class OpenAIService {
         formData.append('prompt', options.prompt);
       }
       
-      if (options.temperature !== undefined) {
-        formData.append('temperature', options.temperature.toString());
-      }
+      // Always use a lower temperature for more accurate transcriptions
+      formData.append('temperature', options.temperature?.toString() || '0.2');
       
       formData.append('response_format', options.responseFormat || 'json');
 
@@ -140,10 +139,12 @@ export class OpenAIService {
    * @returns Promise with transcription result
    */
   async transcribeRealTime(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
-    // For real-time transcription, use the same method but with prompting for conversation context
+    // For real-time transcription, use enhanced prompting and settings
     return this.transcribe(audioBlob, {
-      ...options,
-      prompt: options.prompt || "This is part of an ongoing interview conversation."
+      temperature: 0.2, // Lower temperature for more accurate transcription
+      prompt: options.prompt || "This is part of an ongoing job interview conversation. The speaker is answering interview questions clearly and professionally.",
+      language: "en", // Explicitly set to English for better results
+      ...options
     });
   }
 
@@ -167,31 +168,45 @@ export class OpenAIService {
         Keep your responses brief and focused. Don't mention that you're an AI.
         You're currently asking: "${currentQuestion}"`;
       
-      // Send request to OpenAI Chat API
-      const response = await fetch(this.endpoints.chat, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: options.model || "gpt-4o",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: transcript }
-          ],
-          temperature: options.temperature !== undefined ? options.temperature : 0.7,
-          max_tokens: options.maxTokens || 250  // Keep responses concise
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'OpenAI API request failed');
+      // Send request to OpenAI Chat API with exponential backoff retry
+      let retries = 3;
+      let delay = 1000;
+      
+      while (retries > 0) {
+        try {
+          const response = await fetch(this.endpoints.chat, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: options.model || "gpt-4o", // Using the latest model for best results
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: transcript }
+              ],
+              temperature: options.temperature !== undefined ? options.temperature : 0.7,
+              max_tokens: options.maxTokens || 250  // Keep responses concise
+            })
+          });
+    
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'OpenAI API request failed');
+          }
+    
+          const data = await response.json();
+          return data.choices[0].message.content;
+        } catch (error) {
+          retries--;
+          if (retries === 0) throw error;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2; // Exponential backoff
+        }
       }
-
-      const data = await response.json();
-      return data.choices[0].message.content;
+      
+      throw new Error("Failed after multiple retry attempts");
     } catch (error) {
       console.error("Error generating AI response:", error);
       throw error;

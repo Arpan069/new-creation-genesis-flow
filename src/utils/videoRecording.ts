@@ -55,9 +55,10 @@ export class VideoRecorder {
           console.warn(`${mimeType} is not supported, falling back to default`);
         }
 
-        // Initialize the media recorder
+        // Initialize the media recorder with audio emphasis
         this.mediaRecorder = new MediaRecorder(stream, {
-          mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : 'video/webm'
+          mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : 'video/webm',
+          audioBitsPerSecond: 128000, // Prioritize audio quality
         });
 
         // Collect data chunks as they become available
@@ -75,6 +76,7 @@ export class VideoRecorder {
         // Handle recording start event
         this.mediaRecorder.onstart = () => {
           this.isRecording = true;
+          console.log("Recording started successfully");
           
           // Set up real-time transcription if enabled
           if (options.enableRealTimeTranscription && options.transcriptionCallback) {
@@ -90,8 +92,8 @@ export class VideoRecorder {
           reject(new Error("Error during recording"));
         };
 
-        // Start recording in chunks (1 second intervals)
-        this.mediaRecorder.start(1000); // Capture in 1-second chunks
+        // Start recording in small chunks for more frequent processing
+        this.mediaRecorder.start(500); // Capture in half-second chunks for more responsive transcription
       } catch (error) {
         console.error("Failed to start recording:", error);
         reject(error);
@@ -109,26 +111,42 @@ export class VideoRecorder {
       clearInterval(this.transcriptionInterval);
     }
     
-    // Set up new interval for transcription (every 5 seconds)
+    // Set up new interval for transcription (every 3 seconds - more frequent)
     this.transcriptionInterval = setInterval(async () => {
       if (this.audioChunksForTranscription.length > 0) {
         try {
           // Create a blob from the collected audio chunks
           const audioBlob = new Blob(this.audioChunksForTranscription, { type: 'audio/webm' });
-          this.audioChunksForTranscription = []; // Clear for next batch
+          
+          // Keep some recent audio for context (don't clear completely)
+          // This helps maintain context between processing intervals
+          const maxChunks = 4; // Keep last 4 chunks for context
+          if (this.audioChunksForTranscription.length > maxChunks) {
+            this.audioChunksForTranscription = this.audioChunksForTranscription.slice(-maxChunks);
+          }
+          
+          console.log(`Processing audio chunk: ${audioBlob.size} bytes`);
           
           // Send to OpenAI API for transcription
-          const result = await openAIService.transcribeRealTime(audioBlob);
+          const result = await openAIService.transcribeRealTime(audioBlob, {
+            prompt: "This is part of a job interview conversation. The speaker is answering interview questions."
+          });
           
           // Call the callback with the transcribed text
-          if (result.text) {
+          if (result.text && result.text.trim()) {
+            console.log("Transcription result:", result.text);
             callback(result.text);
+          } else {
+            console.log("Empty transcription received");
           }
         } catch (error) {
           console.error("Real-time transcription error:", error);
+          // Don't add toast here to avoid spamming the UI
         }
+      } else {
+        console.log("No audio chunks for transcription");
       }
-    }, 5000); // Process every 5 seconds
+    }, 3000); // Process every 3 seconds
   }
 
   /**
