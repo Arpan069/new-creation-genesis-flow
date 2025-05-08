@@ -1,7 +1,8 @@
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
-import { openAIService } from "@/services/OpenAIService";
+import { openAIService } from "@/services/openaiService";
 import { toast } from "@/hooks/use-toast";
 
 /**
