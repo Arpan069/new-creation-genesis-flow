@@ -1,4 +1,3 @@
-
 /**
  * Consolidated OpenAI Service
  * 
@@ -7,11 +6,10 @@
  * 2. Text generation for AI interviewer responses (GPT API)
  * 3. Text-to-speech for AI interviewer voice (TTS API)
  * 
- * All these functions use a single OpenAI API key for authentication.
+ * All API calls are now routed through the Flask backend for security
  */
 
-// ADD YOUR API KEY HERE - IMPORTANT: Replace with your actual API key to make the interview work
-const OPENAI_API_KEY = ""; // REPLACE THIS WITH YOUR ACTUAL API KEY
+import { backendService } from "./BackendService";
 
 /**
  * Options for transcription requests
@@ -57,13 +55,13 @@ interface TranscriptionResult {
 }
 
 /**
- * Mock implementation to use when no API key is provided
+ * Mock implementation to use when backend connection fails
  */
 class MockOpenAIService {
   async transcribe(): Promise<TranscriptionResult> {
     console.log("Using mock transcription service");
     return { 
-      text: "This is a mock transcription. Please add your OpenAI API key in src/services/OpenAIService.ts"
+      text: "This is a mock transcription. Please check your Flask backend connection."
     };
   }
 
@@ -73,7 +71,7 @@ class MockOpenAIService {
 
   async generateResponse(transcript: string): Promise<string> {
     console.log("Using mock AI response service");
-    return "I'm a mock AI interviewer. To get real responses, please add your OpenAI API key in src/services/OpenAIService.ts";
+    return "I'm a mock AI interviewer. To get real responses, please check your Flask backend connection.";
   }
 
   async textToSpeech(): Promise<Blob> {
@@ -90,42 +88,43 @@ class MockOpenAIService {
 }
 
 /**
- * Consolidated service for OpenAI API interactions
+ * Consolidated service for OpenAI API interactions via backend
  */
 export class OpenAIService {
-  private apiKey: string;
   private mockService: MockOpenAIService | null = null;
+  private backendConnected: boolean = true;
   
-  // API endpoints
-  private endpoints = {
-    transcription: "https://api.openai.com/v1/audio/transcriptions",
-    chat: "https://api.openai.com/v1/chat/completions",
-    tts: "https://api.openai.com/v1/audio/speech"
-  };
-
+  constructor() {
+    // Check if backend is accessible
+    this.checkBackendConnection();
+  }
+  
   /**
-   * Constructor for the OpenAIService
-   * @param apiKey - OpenAI API key for authentication
+   * Check if the backend service is accessible
    */
-  constructor(apiKey: string = OPENAI_API_KEY) {
-    this.apiKey = apiKey;
-    
-    // Create mock service if no API key is provided
-    if (!this.apiKey) {
-      console.warn("No OpenAI API key provided. Using mock service.");
+  private async checkBackendConnection(): Promise<void> {
+    try {
+      // Make a simple health check request to the backend
+      await fetch(`${backendService["baseUrl"]}/health`, { 
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      console.warn("Could not connect to Flask backend. Using mock service instead.");
+      this.backendConnected = false;
       this.mockService = new MockOpenAIService();
     }
   }
 
   /**
-   * Transcribe audio content using Whisper API
+   * Transcribe audio content using backend service
    * @param audioBlob - Audio/video blob to transcribe
    * @param options - Configuration options
    * @returns Promise with transcription result
    */
   async transcribe(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
-    // Use mock service if no API key
-    if (this.mockService) return this.mockService.transcribe();
+    // Use mock service if backend is not connected
+    if (!this.backendConnected && this.mockService) return this.mockService.transcribe();
     
     try {
       // Convert video to audio if necessary
@@ -134,41 +133,8 @@ export class OpenAIService {
         contentBlob = await this.extractAudioFromVideo(audioBlob);
       }
 
-      // Create form data for the API request
-      const formData = new FormData();
-      formData.append('file', contentBlob, 'audio.webm');
-      formData.append('model', 'whisper-1'); // Using Whisper model
-
-      // Add optional parameters if provided
-      if (options.language) {
-        formData.append('language', options.language);
-      }
-      
-      if (options.prompt) {
-        formData.append('prompt', options.prompt);
-      }
-      
-      // Always use a lower temperature for more accurate transcriptions
-      formData.append('temperature', options.temperature?.toString() || '0.2');
-      
-      formData.append('response_format', options.responseFormat || 'json');
-
-      // Send request to OpenAI Whisper API
-      const response = await fetch(this.endpoints.transcription, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Transcription failed');
-      }
-
-      // Parse and return the response
-      return await response.json();
+      // Send to backend for transcription
+      return await backendService.transcribe(contentBlob, options);
     } catch (error) {
       console.error("Transcription error:", error);
       throw error;
@@ -176,26 +142,26 @@ export class OpenAIService {
   }
 
   /**
-   * Performs real-time transcription of audio chunks
+   * Performs real-time transcription of audio chunks through backend
    * @param audioBlob - Latest audio chunk for transcription
    * @param options - Optional configuration for transcription
    * @returns Promise with transcription result
    */
   async transcribeRealTime(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
-    // Use mock service if no API key
-    if (this.mockService) return this.mockService.transcribeRealTime();
+    // Use mock service if backend is not connected
+    if (!this.backendConnected && this.mockService) return this.mockService.transcribeRealTime();
     
     // For real-time transcription, use enhanced prompting and settings
     return this.transcribe(audioBlob, {
-      temperature: 0.2, // Lower temperature for more accurate transcription
+      temperature: 0.2,
       prompt: options.prompt || "This is part of an ongoing job interview conversation. The speaker is answering interview questions clearly and professionally.",
-      language: "en", // Explicitly set to English for better results
+      language: "en",
       ...options
     });
   }
 
   /**
-   * Process a transcript to generate an AI interviewer response
+   * Process a transcript to generate an AI interviewer response via backend
    * @param transcript - The candidate's transcript text
    * @param currentQuestion - The current interview question
    * @param options - Configuration options for the API request
@@ -206,56 +172,12 @@ export class OpenAIService {
     currentQuestion: string, 
     options: ConversationOptions = {}
   ): Promise<string> {
-    // Use mock service if no API key
-    if (this.mockService) return this.mockService.generateResponse(transcript);
+    // Use mock service if backend is not connected
+    if (!this.backendConnected && this.mockService) return this.mockService.generateResponse(transcript);
     
     try {
-      // Default system prompt for interview context
-      const systemPrompt = options.systemPrompt || 
-        `You are an AI interviewer conducting a job interview. 
-        Your goal is to ask thoughtful follow-up questions and provide natural, conversational responses.
-        Keep your responses brief and focused. Don't mention that you're an AI.
-        You're currently asking: "${currentQuestion}"`;
-      
-      // Send request to OpenAI Chat API with exponential backoff retry
-      let retries = 3;
-      let delay = 1000;
-      
-      while (retries > 0) {
-        try {
-          const response = await fetch(this.endpoints.chat, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: options.model || "gpt-4o-mini", // Using default model
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: transcript }
-              ],
-              temperature: options.temperature !== undefined ? options.temperature : 0.7,
-              max_tokens: options.maxTokens || 250  // Keep responses concise
-            })
-          });
-    
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'OpenAI API request failed');
-          }
-    
-          const data = await response.json();
-          return data.choices[0].message.content;
-        } catch (error) {
-          retries--;
-          if (retries === 0) throw error;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2; // Exponential backoff
-        }
-      }
-      
-      throw new Error("Failed after multiple retry attempts");
+      // Send to backend for processing
+      return await backendService.generateResponse(transcript, currentQuestion, options);
     } catch (error) {
       console.error("Error generating AI response:", error);
       throw error;
@@ -263,39 +185,18 @@ export class OpenAIService {
   }
 
   /**
-   * Convert text to speech using OpenAI's text-to-speech API
+   * Convert text to speech using backend service
    * @param text - Text to convert to speech
    * @param options - Configuration options
    * @returns Promise with audio blob
    */
   async textToSpeech(text: string, options: TextToSpeechOptions = {}): Promise<Blob> {
-    // Use mock service if no API key
-    if (this.mockService) return this.mockService.textToSpeech();
+    // Use mock service if backend is not connected
+    if (!this.backendConnected && this.mockService) return this.mockService.textToSpeech();
     
     try {
-      // Send request to OpenAI TTS API
-      const response = await fetch(this.endpoints.tts, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: "tts-1",
-          input: text,
-          voice: options.voice || "nova", // Default to nova voice
-          speed: options.speed || 1.0,
-          response_format: options.format || "mp3"
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenAI TTS API request failed: ${errorText}`);
-      }
-
-      // Return the audio blob
-      return await response.blob();
+      // Send to backend for TTS processing
+      return await backendService.textToSpeech(text, options);
     } catch (error) {
       console.error("Error converting text to speech:", error);
       throw error;
@@ -308,8 +209,8 @@ export class OpenAIService {
    * @returns Promise that resolves when audio playback starts
    */
   async playAudio(audioBlob: Blob): Promise<void> {
-    // Use mock service if no API key
-    if (this.mockService) return this.mockService.playAudio();
+    // Use mock service if backend is not connected
+    if (!this.backendConnected && this.mockService) return this.mockService.playAudio();
     
     try {
       // Create an audio URL from the blob
