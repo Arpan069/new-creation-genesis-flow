@@ -1,15 +1,10 @@
 
 import { OpenAIService } from "@/services/OpenAIService";
 import { toast } from "@/hooks/use-toast";
+import { ConversationOptions } from "@/services/OpenAIServiceTypes";
 
 // Create a single instance of the service
 const openAIService = new OpenAIService();
-
-interface AIProcessingOptions {
-  temperature?: number;
-  systemPrompt?: string;
-  maxTokens?: number;
-}
 
 /**
  * Process user input with OpenAI to generate interviewer response
@@ -21,7 +16,7 @@ interface AIProcessingOptions {
 export const processAIResponse = async (
   contextString: string,
   currentQuestion: string,
-  options: AIProcessingOptions = {}
+  options: ConversationOptions = {}
 ): Promise<string> => {
   try {
     console.log(`Processing context with current question: "${currentQuestion}"`);

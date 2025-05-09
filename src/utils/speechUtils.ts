@@ -1,5 +1,6 @@
 
 import { OpenAIService } from "@/services/OpenAIService";
+import { TextToSpeechOptions } from "@/services/OpenAIServiceTypes";
 
 const openAIService = new OpenAIService();
 
@@ -12,7 +13,7 @@ const openAIService = new OpenAIService();
 export const speakText = async (
   text: string, 
   isSystemAudioOn: boolean,
-  options = { voice: "nova", speed: 1.0 }
+  options: TextToSpeechOptions = { voice: "nova", speed: 1.0 }
 ): Promise<void> => {
   if (!isSystemAudioOn || !text) return Promise.resolve();
   

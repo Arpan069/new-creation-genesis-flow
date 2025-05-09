@@ -1,91 +1,21 @@
+
 /**
  * Consolidated OpenAI Service
  * 
- * This service combines multiple OpenAI API functionalities:
+ * This service combines multiple OpenAI API functionalities via the backend:
  * 1. Speech-to-text transcription (Whisper API)
  * 2. Text generation for AI interviewer responses (GPT API)
  * 3. Text-to-speech for AI interviewer voice (TTS API)
- * 
- * All API calls are now routed through the Flask backend for security
  */
 
 import { backendService } from "./BackendService";
-
-/**
- * Options for transcription requests
- */
-interface TranscriptionOptions {
-  language?: string;     // Specify a language (optional, Whisper can auto-detect)
-  prompt?: string;       // Optional prompt to guide the transcription
-  temperature?: number;  // Controls randomness (0-1)
-  responseFormat?: string; // Format of the response (json, text, srt, etc.)
-}
-
-/**
- * Options for AI conversation generation
- */
-interface ConversationOptions {
-  model?: string;       // GPT model to use
-  temperature?: number; // Creativity level (0-1)
-  systemPrompt?: string; // System instructions for the AI
-  maxTokens?: number;   // Maximum tokens in the response
-}
-
-/**
- * Options for text-to-speech conversion
- */
-interface TextToSpeechOptions {
-  voice?: string;      // Voice to use (alloy, echo, fable, onyx, nova, shimmer)
-  speed?: number;      // Speed of speech (0.25-4.0)
-  format?: string;     // Audio format (mp3, opus, aac, flac)
-}
-
-/**
- * Results from a transcription request
- */
-interface TranscriptionResult {
-  text: string;          // The transcribed text
-  language?: string;     // Language detected in the audio (if applicable)
-  segments?: Array<{     // Individual segments of the transcription with timestamps
-    id: number;
-    text: string;
-    start: number;
-    end: number;
-  }>;
-}
-
-/**
- * Mock implementation to use when backend connection fails
- */
-class MockOpenAIService {
-  async transcribe(): Promise<TranscriptionResult> {
-    console.log("Using mock transcription service");
-    return { 
-      text: "This is a mock transcription. Please check your Flask backend connection."
-    };
-  }
-
-  async transcribeRealTime(): Promise<TranscriptionResult> {
-    return this.transcribe();
-  }
-
-  async generateResponse(transcript: string): Promise<string> {
-    console.log("Using mock AI response service");
-    return "I'm a mock AI interviewer. To get real responses, please check your Flask backend connection.";
-  }
-
-  async textToSpeech(): Promise<Blob> {
-    console.log("Using mock TTS service");
-    // Create an empty audio blob
-    return new Blob([], { type: "audio/mp3" });
-  }
-
-  async playAudio(): Promise<void> {
-    console.log("Mock audio playback");
-    // Wait a simulated time for "audio playback"
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-}
+import { MockOpenAIService } from "./MockOpenAIService";
+import { 
+  TranscriptionOptions, 
+  TranscriptionResult, 
+  ConversationOptions, 
+  TextToSpeechOptions 
+} from "./OpenAIServiceTypes";
 
 /**
  * Consolidated service for OpenAI API interactions via backend
