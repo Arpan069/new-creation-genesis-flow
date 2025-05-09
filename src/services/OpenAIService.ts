@@ -10,8 +10,8 @@
  * All these functions use a single OpenAI API key for authentication.
  */
 
-// ADD YOUR API KEY HERE
-const OPENAI_API_KEY = "your-api-key-here"; // REPLACE THIS WITH YOUR ACTUAL API KEY
+// ADD YOUR API KEY HERE - IMPORTANT: Replace with your actual API key to make the interview work
+const OPENAI_API_KEY = ""; // REPLACE THIS WITH YOUR ACTUAL API KEY
 
 /**
  * Options for transcription requests
@@ -57,10 +57,44 @@ interface TranscriptionResult {
 }
 
 /**
+ * Mock implementation to use when no API key is provided
+ */
+class MockOpenAIService {
+  async transcribe(): Promise<TranscriptionResult> {
+    console.log("Using mock transcription service");
+    return { 
+      text: "This is a mock transcription. Please add your OpenAI API key in src/services/OpenAIService.ts"
+    };
+  }
+
+  async transcribeRealTime(): Promise<TranscriptionResult> {
+    return this.transcribe();
+  }
+
+  async generateResponse(transcript: string): Promise<string> {
+    console.log("Using mock AI response service");
+    return "I'm a mock AI interviewer. To get real responses, please add your OpenAI API key in src/services/OpenAIService.ts";
+  }
+
+  async textToSpeech(): Promise<Blob> {
+    console.log("Using mock TTS service");
+    // Create an empty audio blob
+    return new Blob([], { type: "audio/mp3" });
+  }
+
+  async playAudio(): Promise<void> {
+    console.log("Mock audio playback");
+    // Wait a simulated time for "audio playback"
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+/**
  * Consolidated service for OpenAI API interactions
  */
 export class OpenAIService {
   private apiKey: string;
+  private mockService: MockOpenAIService | null = null;
   
   // API endpoints
   private endpoints = {
@@ -75,6 +109,12 @@ export class OpenAIService {
    */
   constructor(apiKey: string = OPENAI_API_KEY) {
     this.apiKey = apiKey;
+    
+    // Create mock service if no API key is provided
+    if (!this.apiKey) {
+      console.warn("No OpenAI API key provided. Using mock service.");
+      this.mockService = new MockOpenAIService();
+    }
   }
 
   /**
@@ -84,6 +124,9 @@ export class OpenAIService {
    * @returns Promise with transcription result
    */
   async transcribe(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
+    // Use mock service if no API key
+    if (this.mockService) return this.mockService.transcribe();
+    
     try {
       // Convert video to audio if necessary
       let contentBlob = audioBlob;
@@ -139,6 +182,9 @@ export class OpenAIService {
    * @returns Promise with transcription result
    */
   async transcribeRealTime(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
+    // Use mock service if no API key
+    if (this.mockService) return this.mockService.transcribeRealTime();
+    
     // For real-time transcription, use enhanced prompting and settings
     return this.transcribe(audioBlob, {
       temperature: 0.2, // Lower temperature for more accurate transcription
@@ -160,6 +206,9 @@ export class OpenAIService {
     currentQuestion: string, 
     options: ConversationOptions = {}
   ): Promise<string> {
+    // Use mock service if no API key
+    if (this.mockService) return this.mockService.generateResponse(transcript);
+    
     try {
       // Default system prompt for interview context
       const systemPrompt = options.systemPrompt || 
@@ -181,7 +230,7 @@ export class OpenAIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: options.model || "gpt-4o", // Using the latest model for best results
+              model: options.model || "gpt-4o-mini", // Using default model
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: transcript }
@@ -220,6 +269,9 @@ export class OpenAIService {
    * @returns Promise with audio blob
    */
   async textToSpeech(text: string, options: TextToSpeechOptions = {}): Promise<Blob> {
+    // Use mock service if no API key
+    if (this.mockService) return this.mockService.textToSpeech();
+    
     try {
       // Send request to OpenAI TTS API
       const response = await fetch(this.endpoints.tts, {
@@ -256,6 +308,9 @@ export class OpenAIService {
    * @returns Promise that resolves when audio playback starts
    */
   async playAudio(audioBlob: Blob): Promise<void> {
+    // Use mock service if no API key
+    if (this.mockService) return this.mockService.playAudio();
+    
     try {
       // Create an audio URL from the blob
       const audioUrl = URL.createObjectURL(audioBlob);

@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -17,13 +16,16 @@ const FeedbackTab = () => {
   const [aiInterviewerFeedback, setAiInterviewerFeedback] = useState("");
   const [candidateRating, setCandidateRating] = useState("");
   const [aiInterviewerRating, setAiInterviewerRating] = useState("");
-  const { toast } = useToast();
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   
   const handleSubmitFeedback = () => {
-    toast({
-      title: "Feedback Submitted",
-      description: "Your feedback has been recorded successfully.",
-    });
+    console.log("Feedback submitted");
+    setFeedbackSubmitted(true);
+    
+    // Reset feedback status after 3 seconds
+    setTimeout(() => {
+      setFeedbackSubmitted(false);
+    }, 3000);
   };
 
   return (
@@ -100,7 +102,12 @@ const FeedbackTab = () => {
         </CardContent>
       </Card>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end items-center">
+        {feedbackSubmitted && (
+          <div className="mr-4 text-green-600 dark:text-green-400">
+            Feedback submitted successfully!
+          </div>
+        )}
         <Button onClick={handleSubmitFeedback}>
           Submit Feedback
         </Button>

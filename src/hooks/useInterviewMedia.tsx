@@ -1,5 +1,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { toast } from "@/components/ui/use-toast";
 
 export const useInterviewMedia = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -23,10 +24,16 @@ export const useInterviewMedia = () => {
           });
           
           mediaStreamRef.current = stream;
-          setMediaStream(stream); // Set the media stream state
+          setMediaStream(stream);
           
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
+          }
+
+          // Check specifically if audio tracks are available
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length === 0) {
+            console.warn("No audio tracks available");
           }
         } else {
           console.error("getUserMedia is not supported in this browser");
@@ -35,11 +42,15 @@ export const useInterviewMedia = () => {
         // Set loading to false after a small delay
         setTimeout(() => {
           setIsLoading(false);
-        }, 1000); // Reduced from 2000ms to 1000ms for better UX
+        }, 1000);
         
       } catch (error) {
         console.error("Error accessing media devices:", error);
         setIsLoading(false);
+        
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          console.log("User denied permission for media devices");
+        }
       }
     };
 
@@ -55,7 +66,7 @@ export const useInterviewMedia = () => {
     };
   }, []);
 
-  // Toggle video with memoized callback to prevent unnecessary re-renders
+  // Toggle video
   const toggleVideo = useCallback(async () => {
     const stream = mediaStreamRef.current;
     
@@ -76,12 +87,17 @@ export const useInterviewMedia = () => {
           setIsVideoOn(true);
         } catch (error) {
           console.error("Could not access camera.", error);
+          toast({
+            title: "Camera Access Failed",
+            description: "Could not access your camera.",
+            variant: "destructive",
+          });
         }
       }
     }
   }, [isVideoOn]);
 
-  // Toggle audio with memoized callback
+  // Toggle audio
   const toggleAudio = useCallback(async () => {
     const stream = mediaStreamRef.current;
     
@@ -102,14 +118,56 @@ export const useInterviewMedia = () => {
           setIsAudioOn(true);
         } catch (error) {
           console.error("Could not access microphone.", error);
+          toast({
+            title: "Microphone Access Failed",
+            description: "Could not access your microphone.",
+            variant: "destructive",
+          });
         }
       }
     }
   }, [isAudioOn]);
 
-  // Toggle system audio with memoized callback
+  // Toggle system audio
   const toggleSystemAudio = useCallback(() => {
     setIsSystemAudioOn(prev => !prev);
+  }, []);
+
+  // Function to request media permissions again
+  const requestMediaPermissions = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Explicitly request both audio and video permissions
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true, 
+        video: true 
+      });
+      
+      // Update refs and state
+      mediaStreamRef.current = stream;
+      setMediaStream(stream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      setIsVideoOn(true);
+      setIsAudioOn(true);
+      
+      toast({
+        title: "Permissions Granted",
+        description: "Microphone and camera access successful.",
+      });
+    } catch (error) {
+      console.error("Error requesting media permissions:", error);
+      toast({
+        title: "Permission Request Failed",
+        description: "Could not get access to your camera and microphone.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   return {
@@ -121,6 +179,7 @@ export const useInterviewMedia = () => {
     toggleVideo,
     toggleAudio,
     toggleSystemAudio,
-    mediaStream // New: Exposing media stream for recording
+    mediaStream,
+    requestMediaPermissions
   };
 };

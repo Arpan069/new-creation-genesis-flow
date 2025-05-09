@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { videoRecorder } from "@/utils/videoRecording";
@@ -49,7 +48,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     advanceToNextQuestion
   );
   
-  const { handleRealTimeTranscription } = useRealTimeTranscription(
+  const { handleRealTimeTranscription, transcriptionState, getTranscriptionStatus } = useRealTimeTranscription(
     addToTranscript,
     processWithOpenAI,
     currentQuestion
@@ -105,6 +104,23 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       // Set the first question
       setCurrentQuestion(questions[0]);
       
+      // Verify audio tracks are present and active
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        toast({
+          title: "Microphone not detected",
+          description: "Voice recognition requires a microphone. Please connect one and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Log audio track info for debugging
+      console.log("Audio tracks available:", audioTracks.length);
+      audioTracks.forEach((track, i) => {
+        console.log(`Track ${i}:`, track.label, track.enabled, track.readyState);
+      });
+      
       // Start recording with real-time transcription enabled
       await videoRecorder.startRecording(stream, {
         enableRealTimeTranscription: true,
@@ -122,6 +138,12 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
       
       // Simulate AI speaking the question
       speakText(questions[0], isSystemAudioOn);
+
+      // Add a test message to verify transcription is working
+      setTimeout(() => {
+        console.log("Adding test transcript entry to verify system");
+        addToTranscript("System", "Interview recording started. Speak clearly into your microphone.");
+      }, 1000);
     } catch (error) {
       console.error("Failed to start interview:", error);
       toast({
@@ -190,6 +212,7 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
     currentCodingQuestion,
     showCodingChallenge,
     videoUrl,
-    isProcessingAI
+    isProcessingAI,
+    transcriptionState
   };
 };

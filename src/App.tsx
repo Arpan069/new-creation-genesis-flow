@@ -1,5 +1,5 @@
 
-import { Toaster } from "@/components/ui/toaster";
+import React from 'react';
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -28,39 +28,39 @@ import EmployerProfile from "./pages/employer/Profile";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-right" closeButton />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            
-            {/* Candidate routes */}
-            <Route path="/candidate/login" element={<CandidateLogin />} />
-            <Route path="/candidate/register" element={<CandidateRegister />} />
-            <Route path="/candidate/verify-otp" element={<CandidateVerifyOTP />} />
-            <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
-            <Route path="/candidate/profile" element={<CandidateProfile />} />
-            <Route path="/candidate/interview" element={<CandidateInterview />} />
-            
-            {/* Employer routes */}
-            <Route path="/employer/login" element={<EmployerLogin />} />
-            <Route path="/employer/register" element={<EmployerRegister />} />
-            <Route path="/employer/dashboard" element={<EmployerDashboard />} />
-            <Route path="/employer/profile" element={<EmployerProfile />} />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light">
+        <TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              
+              {/* Candidate routes */}
+              <Route path="/candidate/login" element={<CandidateLogin />} />
+              <Route path="/candidate/register" element={<CandidateRegister />} />
+              <Route path="/candidate/verify-otp" element={<CandidateVerifyOTP />} />
+              <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
+              <Route path="/candidate/profile" element={<CandidateProfile />} />
+              <Route path="/candidate/interview" element={<CandidateInterview />} />
+              
+              {/* Employer routes */}
+              <Route path="/employer/login" element={<EmployerLogin />} />
+              <Route path="/employer/register" element={<EmployerRegister />} />
+              <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+              <Route path="/employer/profile" element={<EmployerProfile />} />
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </React.StrictMode>
 );
 
 export default App;

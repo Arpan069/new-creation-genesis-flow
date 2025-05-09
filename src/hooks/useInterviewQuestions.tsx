@@ -65,6 +65,15 @@ export const useInterviewQuestions = (
       speakText(endMessage, isSystemAudioOn);
     }
   }, [currentQuestion, questions, addToTranscript, isSystemAudioOn]);
+  
+  /**
+   * Reset interview questions to initial state
+   */
+  const resetQuestions = useCallback(() => {
+    setCurrentQuestion("");
+    setCurrentCodingQuestion("");
+    setShowCodingChallenge(false);
+  }, []);
 
   return {
     questions,
@@ -75,6 +84,7 @@ export const useInterviewQuestions = (
     setCurrentCodingQuestion,
     showCodingChallenge,
     setShowCodingChallenge,
-    advanceToNextQuestion
+    advanceToNextQuestion,
+    resetQuestions
   };
 };

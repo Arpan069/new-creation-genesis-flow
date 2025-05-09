@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import InterviewHeader from "@/components/interview/InterviewHeader";
 import InterviewAvatar from "@/components/interview/InterviewAvatar";
@@ -7,11 +7,10 @@ import VideoFeed from "@/components/interview/VideoFeed";
 import QuestionCard from "@/components/interview/QuestionCard";
 import InterviewTabs from "@/components/interview/InterviewTabs";
 import { useInterviewMedia } from "@/hooks/useInterviewMedia";
-import { useInterviewLogic } from "@/hooks/useInterviewLogic";
+import { useInterview } from "@/hooks/useInterview";
 import { Card, CardContent } from "@/components/ui/card";
 import EnhancedBackground from "@/components/EnhancedBackground";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { toast } from "@/hooks/use-toast";
 
 /**
  * Main Interview Page Component
@@ -28,7 +27,8 @@ const InterviewPage = () => {
     toggleVideo, 
     toggleAudio, 
     toggleSystemAudio,
-    mediaStream
+    mediaStream,
+    requestMediaPermissions
   } = useInterviewMedia();
   
   const { 
@@ -37,10 +37,25 @@ const InterviewPage = () => {
     isProcessingAI,
     currentQuestion, 
     transcript,
-    startInterview: startInterviewLogic, 
+    startInterview,
     endInterview,
-    currentCodingQuestion
-  } = useInterviewLogic(isSystemAudioOn);
+    currentCodingQuestion,
+    browserSupportsSpeechRecognition,
+    isListening
+  } = useInterview(isSystemAudioOn);
+
+  // Debug state to show speech recognition status
+  const [lastTranscribed, setLastTranscribed] = useState("");
+  
+  // Effect to monitor transcription updates
+  useEffect(() => {
+    if (transcript.length > 0) {
+      const lastEntry = transcript[transcript.length - 1];
+      if (lastEntry.speaker === "You") {
+        setLastTranscribed(lastEntry.text);
+      }
+    }
+  }, [transcript]);
 
   /**
    * Start interview with recording when user clicks start button
@@ -48,37 +63,31 @@ const InterviewPage = () => {
    */
   const handleStartInterview = async () => {
     if (!mediaStream) {
-      toast({
-        title: "Camera/Microphone required",
-        description: "Please enable your camera and microphone to start the interview",
-        variant: "destructive"
-      });
-      return;
+      // Try requesting permissions silently
+      if (requestMediaPermissions) {
+        try {
+          await requestMediaPermissions();
+        } catch (error) {
+          console.error("Camera access needed: Please allow camera and microphone access to continue.");
+          return;
+        }
+      }
+      
+      // If still no media stream, log error
+      if (!mediaStream) {
+        console.error("Camera access needed: Please allow camera and microphone access to continue.");
+        return;
+      }
+    }
+    
+    // Check if browser supports speech recognition
+    if (!browserSupportsSpeechRecognition) {
+      console.info("Browser compatibility: For best experience, use Chrome, Edge, or Safari for speech recognition.");
     }
     
     // Start interview logic with media stream for recording
-    // Note: Removed the toast notification about recording in progress
-    await startInterviewLogic(mediaStream);
+    await startInterview(mediaStream);
   };
-
-  /**
-   * Warn before unload if interview is in progress
-   */
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isInterviewStarted && !confirm("Are you sure you want to leave? Your interview progress will be lost.")) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isInterviewStarted]);
 
   return (
     <EnhancedBackground intensity="light" variant="default">
@@ -135,6 +144,8 @@ const InterviewPage = () => {
               toggleAudio={toggleAudio}
               toggleSystemAudio={toggleSystemAudio}
               isRecording={isRecording}
+              isListening={isListening}
+              lastTranscribed={lastTranscribed}
             />
             
             <InterviewTabs 

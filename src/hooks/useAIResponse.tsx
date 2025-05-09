@@ -1,5 +1,4 @@
-
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { OpenAIService } from "@/services/OpenAIService";
 import { toast } from "@/hooks/use-toast";
 import { speakText } from "@/utils/speechUtils";
@@ -15,10 +14,8 @@ export const useAIResponse = (
   advanceToNextQuestion: () => void
 ) => {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const isAIResponding = useRef(false);
-  const lastProcessedTranscript = useRef<string>("");
-  const processingRetries = useRef<number>(0);
-  const maxRetries = 3;
+  const conversationContext = useRef<string[]>([]);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Process transcript with OpenAI to generate interviewer response
@@ -26,114 +23,104 @@ export const useAIResponse = (
    * @param currentQuestion The current interview question
    */
   const processWithOpenAI = useCallback(async (transcriptText: string, currentQuestion: string) => {
-    // Avoid processing if AI is already responding or text is too similar to last processed
-    if (isAIResponding.current) {
-      console.log("AI is already responding, skipping processing");
-      return;
-    }
-    
-    // Check if text is too similar to avoid duplicate processing
-    if (transcriptText === lastProcessedTranscript.current) {
-      console.log("Transcript unchanged, skipping processing");
-      return;
-    }
-    
-    // Ignore very short transcripts (likely false positives)
+    // Skip if text is very short (likely noise)
     if (transcriptText.trim().split(/\s+/).length < 2) {
-      console.log("Transcript too short, skipping processing");
+      console.log("Text too short, skipping AI processing");
       return;
+    }
+    
+    // Clear any existing timeout
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
     }
     
     try {
-      isAIResponding.current = true;
       setIsProcessingAI(true);
       
-      // Update reference to avoid reprocessing same text
-      lastProcessedTranscript.current = transcriptText;
+      // Add user message to context
+      conversationContext.current.push(`Candidate: ${transcriptText}`);
+      
+      // Keep context to last 6 messages for better performance
+      if (conversationContext.current.length > 6) {
+        conversationContext.current = conversationContext.current.slice(-6);
+      }
       
       console.log(`Processing transcript: "${transcriptText}" for question: "${currentQuestion}"`);
       
+      // Create a context string with recent conversation history
+      const contextString = [
+        `Current question: "${currentQuestion}"`,
+        ...conversationContext.current
+      ].join("\n\n");
+      
       // Process with OpenAI
       const aiResponse = await openAIService.generateResponse(
-        transcriptText,
+        contextString,
         currentQuestion,
         { 
           temperature: 0.7,
           systemPrompt: `You are an AI interviewer conducting a job interview. 
           Your name is AI Interviewer. You are currently asking: "${currentQuestion}"
-          Respond to the candidate's answer. Keep your response brief (2-3 sentences maximum).
+          Respond naturally to the candidate's answer. Keep your response brief (2-3 sentences maximum).
           Be conversational but professional. Ask thoughtful follow-up questions when appropriate.
           You must respond in complete sentences, even if the candidate's answer is unclear.
-          If the candidate's answer isn't clear, ask them to clarify.`
+          If the candidate's answer shows they are done with this topic, end with "Let's move on to the next question."
+          If the candidate's answer is unclear, ask them to clarify.
+          IMPORTANT: Don't repeat yourself. Never say "Thank you for sharing" or similar phrases repeatedly.`
         }
       );
       
       console.log("AI Response received:", aiResponse);
       
-      // Reset retry counter on success
-      processingRetries.current = 0;
+      // Add AI response to conversation context
+      conversationContext.current.push(`AI Interviewer: ${aiResponse}`);
       
       // Add AI response to transcript
       addToTranscript("AI Interviewer", aiResponse);
       
       // Convert AI response to speech if system audio is enabled
-      if (isSystemAudioOn) {
-        try {
-          const audioBlob = await openAIService.textToSpeech(aiResponse);
-          await openAIService.playAudio(audioBlob);
-          
-          // After speech finishes, consider moving to next question if appropriate
-          const shouldAdvance = aiResponse.includes("next question") || 
-                              aiResponse.includes("Let's move on");
-          
-          if (shouldAdvance) {
-            // Advance to next question after speech completes
-            advanceToNextQuestion();
-          }
-        } catch (error) {
-          console.error("TTS error:", error);
-          // Fall back to silent mode if TTS fails
-          toast({
-            title: "Text-to-speech issue",
-            description: "Audio playback failed. Check your speakers.",
-            variant: "destructive",
-          });
-        }
+      await speakText(aiResponse, isSystemAudioOn);
+      
+      // Check if we should move to the next question
+      const shouldAdvance = aiResponse.includes("next question") || 
+                          aiResponse.includes("Let's move on");
+      
+      if (shouldAdvance) {
+        // Advance to next question after speech completes
+        advanceToNextQuestion();
       }
     } catch (error) {
       console.error("AI processing error:", error);
-      
-      // Increment retry counter
-      processingRetries.current++;
-      
-      if (processingRetries.current <= maxRetries) {
-        // Try again with a delay
-        toast({
-          title: "AI Processing Retry",
-          description: `Trying again (${processingRetries.current}/${maxRetries})...`,
-          variant: "default",
-        });
-        
-        setTimeout(() => {
-          processWithOpenAI(transcriptText, currentQuestion);
-        }, 2000); // Retry after 2 seconds
-      } else {
-        // Reset retry counter and show error
-        processingRetries.current = 0;
-        toast({
-          title: "AI Processing Error",
-          description: "Failed to generate AI response after multiple attempts",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "AI Processing Error",
+        description: "Failed to generate AI response. Please check your API key.",
+        variant: "destructive",
+      });
     } finally {
-      isAIResponding.current = false;
       setIsProcessingAI(false);
+      
+      // Set a timeout to prompt the user if they're silent for too long
+      processingTimeoutRef.current = setTimeout(() => {
+        if (!isProcessingAI) {
+          console.log("User silent for too long, AI might prompt for more input");
+          // We could add logic here to have AI prompt for more input 
+          // if the user is silent for too long
+        }
+      }, 20000); // 20 second timeout
     }
   }, [isSystemAudioOn, addToTranscript, advanceToNextQuestion]);
 
+  // Function to reset conversation context
+  const resetConversation = useCallback(() => {
+    conversationContext.current = [];
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+    }
+  }, []);
+
   return {
     isProcessingAI,
-    processWithOpenAI
+    processWithOpenAI,
+    resetConversation
   };
 };
