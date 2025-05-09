@@ -4,27 +4,72 @@
  * This service handles all API calls to the backend server
  */
 
+import { BACKEND_CONFIG } from "@/config/backendConfig";
+
 interface BackendConfig {
   baseUrl: string;
+  debug?: boolean;
+  retry?: {
+    maxAttempts: number;
+    initialDelay: number;
+    maxDelay: number;
+    backoffFactor: number;
+  };
 }
 
-// Backend configuration - replace with your Flask server URL
-const BACKEND_CONFIG: BackendConfig = {
-  baseUrl: "http://localhost:5000/api", // Default Flask development server
-};
+/**
+ * Custom error class for backend-related errors
+ */
+export class BackendError extends Error {
+  public status?: number;
+  public attempt?: number;
+  
+  constructor(message: string, status?: number, attempt?: number) {
+    super(message);
+    this.name = 'BackendError';
+    this.status = status;
+    this.attempt = attempt;
+    
+    // This is needed for proper inheritance in TypeScript
+    Object.setPrototypeOf(this, BackendError.prototype);
+  }
+}
 
 /**
  * Service for making requests to the Flask backend
  */
 export class BackendService {
   private baseUrl: string;
+  private debug: boolean;
+  private retryConfig: {
+    maxAttempts: number;
+    initialDelay: number;
+    maxDelay: number;
+    backoffFactor: number;
+  };
   
   constructor(config: BackendConfig = BACKEND_CONFIG) {
     this.baseUrl = config.baseUrl;
+    this.debug = config.debug || false;
+    this.retryConfig = config.retry || {
+      maxAttempts: 3,
+      initialDelay: 1000,
+      maxDelay: 5000,
+      backoffFactor: 2
+    };
   }
 
   /**
-   * Make a request to the backend API
+   * Log messages when debug is enabled
+   */
+  private log(...args: any[]): void {
+    if (this.debug) {
+      console.log('[BackendService]', ...args);
+    }
+  }
+
+  /**
+   * Make a request to the backend API with retry capability
    * @param endpoint - API endpoint to call
    * @param method - HTTP method
    * @param data - Optional request data
@@ -36,24 +81,92 @@ export class BackendService {
     data?: any
   ): Promise<T> {
     const url = `${this.baseUrl}/${endpoint}`;
+    let attempt = 1;
+    let delay = this.retryConfig.initialDelay;
     
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: data ? JSON.stringify(data) : undefined,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
+    while (attempt <= this.retryConfig.maxAttempts) {
+      try {
+        this.log(`Attempt ${attempt}/${this.retryConfig.maxAttempts} for ${method} ${endpoint}`);
+        
+        // Check for network connectivity before making the request
+        if (!navigator.onLine) {
+          throw new BackendError("No internet connection available", 0, attempt);
+        }
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: data ? JSON.stringify(data) : undefined,
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Handle different HTTP status codes
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          const errorMessage = errorBody.error || `HTTP Error: ${response.status} ${response.statusText}`;
+          
+          // For certain status codes, we don't want to retry
+          if (response.status === 401 || response.status === 403 || response.status === 404) {
+            throw new BackendError(errorMessage, response.status, attempt);
+          }
+          
+          throw new BackendError(errorMessage, response.status, attempt);
+        }
+        
+        return await response.json() as T;
+      } catch (error) {
+        // Handle different error types
+        if (error instanceof BackendError) {
+          // For specific status codes, don't retry
+          if (error.status === 401 || error.status === 403 || error.status === 404) {
+            this.log(`Error ${error.status} won't be retried:`, error.message);
+            throw error;
+          }
+        }
+        
+        // Don't retry if this was our last attempt
+        if (attempt >= this.retryConfig.maxAttempts) {
+          this.log(`All ${this.retryConfig.maxAttempts} attempts failed for ${endpoint}`);
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            throw new BackendError(`Request timeout after 15 seconds for ${endpoint}`);
+          }
+          throw error instanceof BackendError ? error : new BackendError(`Failed to connect to backend: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        // Log the error and prepare for retry
+        this.log(`Attempt ${attempt} failed for ${endpoint}:`, error);
+        
+        // Wait before the next retry with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Increase the delay for the next attempt (with maximum limit)
+        delay = Math.min(delay * this.retryConfig.backoffFactor, this.retryConfig.maxDelay);
+        attempt++;
       }
-      
-      return await response.json() as T;
+    }
+    
+    // This should never be reached due to the throw in the loop above
+    throw new BackendError(`Unexpected error in retry loop for ${endpoint}`);
+  }
+
+  /**
+   * Check if the backend is accessible
+   * @returns Promise resolving to true if backend is available, false otherwise
+   */
+  async isBackendAvailable(): Promise<boolean> {
+    try {
+      await this.makeRequest<{status: string}>('health');
+      return true;
     } catch (error) {
-      console.error(`Error calling ${endpoint}:`, error);
-      throw error;
+      this.log('Backend health check failed:', error);
+      return false;
     }
   }
   
