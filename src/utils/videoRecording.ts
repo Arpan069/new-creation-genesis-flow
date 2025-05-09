@@ -1,7 +1,6 @@
-
 import { mediaRecorder } from './mediaRecorder';
 import { transcriptionProcessor } from './transcriptionProcessor';
-import { videoStorage } from './videoStorage';
+import { videoStorage } from './storage/videoStorage';
 
 export interface RecordingOptions {
   fileName?: string;
