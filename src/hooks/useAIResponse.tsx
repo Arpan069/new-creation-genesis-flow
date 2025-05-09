@@ -1,9 +1,8 @@
-import { useCallback, useState, useRef } from "react";
-import { OpenAIService } from "@/services/OpenAIService";
-import { toast } from "@/hooks/use-toast";
-import { speakText } from "@/utils/speechUtils";
 
-const openAIService = new OpenAIService();
+import { useCallback, useState, useRef } from "react";
+import { speakText } from "@/utils/speechUtils";
+import { useConversationContext } from "@/hooks/useConversationContext";
+import { processAIResponse, shouldAdvanceToNextQuestion } from "@/utils/aiResponseProcessor";
 
 /**
  * Hook for managing AI responses in the interview
@@ -14,8 +13,8 @@ export const useAIResponse = (
   advanceToNextQuestion: () => void
 ) => {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const conversationContext = useRef<string[]>([]);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { addToContext, resetContext, getContextString } = useConversationContext();
 
   /**
    * Process transcript with OpenAI to generate interviewer response
@@ -38,42 +37,16 @@ export const useAIResponse = (
       setIsProcessingAI(true);
       
       // Add user message to context
-      conversationContext.current.push(`Candidate: ${transcriptText}`);
+      addToContext("Candidate", transcriptText);
       
-      // Keep context to last 6 messages for better performance
-      if (conversationContext.current.length > 6) {
-        conversationContext.current = conversationContext.current.slice(-6);
-      }
-      
-      console.log(`Processing transcript: "${transcriptText}" for question: "${currentQuestion}"`);
-      
-      // Create a context string with recent conversation history
-      const contextString = [
-        `Current question: "${currentQuestion}"`,
-        ...conversationContext.current
-      ].join("\n\n");
+      // Create context string with conversation history
+      const contextString = getContextString(currentQuestion);
       
       // Process with OpenAI
-      const aiResponse = await openAIService.generateResponse(
-        contextString,
-        currentQuestion,
-        { 
-          temperature: 0.7,
-          systemPrompt: `You are an AI interviewer conducting a job interview. 
-          Your name is AI Interviewer. You are currently asking: "${currentQuestion}"
-          Respond naturally to the candidate's answer. Keep your response brief (2-3 sentences maximum).
-          Be conversational but professional. Ask thoughtful follow-up questions when appropriate.
-          You must respond in complete sentences, even if the candidate's answer is unclear.
-          If the candidate's answer shows they are done with this topic, end with "Let's move on to the next question."
-          If the candidate's answer is unclear, ask them to clarify.
-          IMPORTANT: Don't repeat yourself. Never say "Thank you for sharing" or similar phrases repeatedly.`
-        }
-      );
-      
-      console.log("AI Response received:", aiResponse);
+      const aiResponse = await processAIResponse(contextString, currentQuestion);
       
       // Add AI response to conversation context
-      conversationContext.current.push(`AI Interviewer: ${aiResponse}`);
+      addToContext("AI Interviewer", aiResponse);
       
       // Add AI response to transcript
       addToTranscript("AI Interviewer", aiResponse);
@@ -82,20 +55,12 @@ export const useAIResponse = (
       await speakText(aiResponse, isSystemAudioOn);
       
       // Check if we should move to the next question
-      const shouldAdvance = aiResponse.includes("next question") || 
-                          aiResponse.includes("Let's move on");
-      
-      if (shouldAdvance) {
+      if (shouldAdvanceToNextQuestion(aiResponse)) {
         // Advance to next question after speech completes
         advanceToNextQuestion();
       }
     } catch (error) {
       console.error("AI processing error:", error);
-      toast({
-        title: "AI Processing Error",
-        description: "Failed to generate AI response. Please check your API key.",
-        variant: "destructive",
-      });
     } finally {
       setIsProcessingAI(false);
       
@@ -108,15 +73,15 @@ export const useAIResponse = (
         }
       }, 20000); // 20 second timeout
     }
-  }, [isSystemAudioOn, addToTranscript, advanceToNextQuestion]);
+  }, [isSystemAudioOn, addToTranscript, addToContext, getContextString, advanceToNextQuestion]);
 
   // Function to reset conversation context
   const resetConversation = useCallback(() => {
-    conversationContext.current = [];
+    resetContext();
     if (processingTimeoutRef.current) {
       clearTimeout(processingTimeoutRef.current);
     }
-  }, []);
+  }, [resetContext]);
 
   return {
     isProcessingAI,
