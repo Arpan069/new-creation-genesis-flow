@@ -7,39 +7,79 @@ Handles OpenAI API calls securely
 import os
 import base64
 import io
+import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import openai
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables from .env file (if available)
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Configure CORS - replace with your React app's URL in production
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+# Configure CORS to allow requests from any origin during development
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# Configure OpenAI
-openai.api_key = os.environ.get("OPENAI_API_KEY")
-if not openai.api_key:
-    print("WARNING: OPENAI_API_KEY environment variable not set")
+# OpenAI API key storage
+openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+
+@app.route("/api/set-api-key", methods=["POST"])
+def set_api_key():
+    """Set the OpenAI API key"""
+    global openai_api_key
+    data = request.json
+    
+    if not data or "api_key" not in data:
+        return jsonify({"error": "Missing API key"}), 400
+    
+    # Store the API key
+    openai_api_key = data["api_key"].strip()
+    
+    # Test if the API key works with a simple request
+    try:
+        openai.api_key = openai_api_key
+        # Make a simple test request to verify the API key
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": "Test"}],
+            max_tokens=5
+        )
+        return jsonify({"status": "ok", "message": "API key set successfully"})
+    except Exception as e:
+        return jsonify({"error": f"Invalid API key: {str(e)}"}), 400
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "ok", "message": "Backend is running"})
+    global openai_api_key
+    
+    health_status = {
+        "status": "ok", 
+        "message": "Backend is running",
+        "api_key_configured": bool(openai_api_key)
+    }
+    
+    return jsonify(health_status)
 
 @app.route("/api/transcribe", methods=["POST"])
 def transcribe_audio():
     """Transcribe audio using OpenAI Whisper API"""
+    global openai_api_key
+    
+    if not openai_api_key:
+        return jsonify({"error": "OpenAI API key not configured"}), 401
+    
     data = request.json
     
     if not data or "audio_data" not in data:
         return jsonify({"error": "Missing audio data"}), 400
     
     try:
+        # Set API key for request
+        openai.api_key = openai_api_key
+        
         # Decode base64 audio data
         audio_bytes = base64.b64decode(data["audio_data"])
         
@@ -68,12 +108,20 @@ def transcribe_audio():
 @app.route("/api/generate-response", methods=["POST"])
 def generate_response():
     """Generate AI response using OpenAI GPT"""
+    global openai_api_key
+    
+    if not openai_api_key:
+        return jsonify({"error": "OpenAI API key not configured"}), 401
+    
     data = request.json
     
     if not data or "transcript" not in data:
         return jsonify({"error": "Missing transcript"}), 400
     
     try:
+        # Set API key for request
+        openai.api_key = openai_api_key
+        
         transcript = data["transcript"]
         current_question = data.get("currentQuestion", "")
         options = data.get("options", {})
@@ -110,12 +158,20 @@ def generate_response():
 @app.route("/api/text-to-speech", methods=["POST"])
 def text_to_speech():
     """Convert text to speech using OpenAI TTS API"""
+    global openai_api_key
+    
+    if not openai_api_key:
+        return jsonify({"error": "OpenAI API key not configured"}), 401
+    
     data = request.json
     
     if not data or "text" not in data:
         return jsonify({"error": "Missing text"}), 400
     
     try:
+        # Set API key for request
+        openai.api_key = openai_api_key
+        
         text = data["text"]
         options = data.get("options", {})
         

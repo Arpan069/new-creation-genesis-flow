@@ -1,6 +1,7 @@
 
 import { OpenAIService } from "@/services/OpenAIService";
 import { TextToSpeechOptions } from "@/services/OpenAIServiceTypes";
+import { toast } from "@/hooks/use-toast";
 
 const openAIService = new OpenAIService();
 
@@ -24,12 +25,58 @@ export const speakText = async (
     const audioBlob = await openAIService.textToSpeech(text, options);
     
     // Play the audio
-    return await openAIService.playAudio(audioBlob);
+    return await playAudio(audioBlob);
   } catch (error) {
     console.error("Error speaking text:", error);
-    // Silently fail - interviewer will just not speak
-    return Promise.resolve();
+    
+    // Try browser's built-in speech synthesis as fallback
+    console.log("Falling back to browser speech synthesis");
+    try {
+      await speakWithBrowserSynthesis(text);
+      return Promise.resolve();
+    } catch (fallbackError) {
+      console.error("Fallback speech synthesis failed:", fallbackError);
+      toast({
+        title: "Speech synthesis failed",
+        description: "Please check your OpenAI API key or try again later.",
+        variant: "destructive",
+      });
+      return Promise.resolve();
+    }
   }
+};
+
+/**
+ * Play audio from a blob
+ */
+export const playAudio = async (audioBlob: Blob): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create audio URL and element
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      // Set up event handlers
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        resolve();
+      };
+      
+      audio.onerror = (err) => {
+        URL.revokeObjectURL(audioUrl);
+        reject(new Error(`Audio playback error: ${err}`));
+      };
+      
+      // Play the audio
+      audio.play().catch(error => {
+        console.error("Audio play error:", error);
+        URL.revokeObjectURL(audioUrl);
+        reject(error);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 /**

@@ -3,7 +3,8 @@
  * Configuration for backend API connection
  */
 export const BACKEND_CONFIG = {
-  baseUrl: "http://localhost:5000/api",
+  // Use the relative URL path which will work in both development and production
+  baseUrl: "/api",
   
   // Debug setting - set to true during development to see detailed logs
   debug: true,

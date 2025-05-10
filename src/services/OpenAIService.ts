@@ -8,7 +8,7 @@
  * 3. Text-to-speech for AI interviewer voice (TTS API)
  */
 
-import { backendService } from "./BackendService";
+import { backendService } from "./api/BackendService";
 import { MockOpenAIService } from "./MockOpenAIService";
 import { 
   TranscriptionOptions, 
@@ -34,13 +34,18 @@ export class OpenAIService {
    */
   private async checkBackendConnection(): Promise<void> {
     try {
-      // Make a simple health check request to the backend
-      await fetch(`${backendService["baseUrl"]}/health`, { 
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const isAvailable = await backendService.isBackendAvailable();
+      
+      if (!isAvailable) {
+        console.warn("Backend health check failed. Using mock service instead.");
+        this.backendConnected = false;
+        this.mockService = new MockOpenAIService();
+      } else {
+        console.log("Backend connection successful");
+        this.backendConnected = true;
+      }
     } catch (error) {
-      console.warn("Could not connect to Flask backend. Using mock service instead.");
+      console.warn("Could not connect to Flask backend. Using mock service instead:", error);
       this.backendConnected = false;
       this.mockService = new MockOpenAIService();
     }
