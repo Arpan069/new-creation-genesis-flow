@@ -25,10 +25,13 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 # OpenAI API key storage
 openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 
+# Initialize OpenAI client
+client = None
+
 @app.route("/api/set-api-key", methods=["POST"])
 def set_api_key():
     """Set the OpenAI API key"""
-    global openai_api_key
+    global openai_api_key, client
     data = request.json
     
     if not data or "api_key" not in data:
@@ -39,9 +42,9 @@ def set_api_key():
     
     # Test if the API key works with a simple request
     try:
-        openai.api_key = openai_api_key
+        client = openai.OpenAI(api_key=openai_api_key)
         # Make a simple test request to verify the API key
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": "Test"}],
             max_tokens=5
@@ -66,10 +69,13 @@ def health_check():
 @app.route("/api/transcribe", methods=["POST"])
 def transcribe_audio():
     """Transcribe audio using OpenAI Whisper API"""
-    global openai_api_key
+    global openai_api_key, client
     
     if not openai_api_key:
         return jsonify({"error": "OpenAI API key not configured"}), 401
+    
+    if client is None:
+        client = openai.OpenAI(api_key=openai_api_key)
     
     data = request.json
     
@@ -77,21 +83,17 @@ def transcribe_audio():
         return jsonify({"error": "Missing audio data"}), 400
     
     try:
-        # Set API key for request
-        openai.api_key = openai_api_key
-        
         # Decode base64 audio data
         audio_bytes = base64.b64decode(data["audio_data"])
         
-        # Prepare file for OpenAI API
+        # Create temporary file for OpenAI API
         audio_file = io.BytesIO(audio_bytes)
-        audio_file.name = "audio.webm"  # Name required by OpenAI
         
         # Get transcription options
         options = data.get("options", {})
         
         # Call OpenAI Whisper API
-        response = openai.Audio.transcribe(
+        response = client.audio.transcriptions.create(
             file=audio_file,
             model="whisper-1",
             language=options.get("language"),
@@ -108,10 +110,13 @@ def transcribe_audio():
 @app.route("/api/generate-response", methods=["POST"])
 def generate_response():
     """Generate AI response using OpenAI GPT"""
-    global openai_api_key
+    global openai_api_key, client
     
     if not openai_api_key:
         return jsonify({"error": "OpenAI API key not configured"}), 401
+    
+    if client is None:
+        client = openai.OpenAI(api_key=openai_api_key)
     
     data = request.json
     
@@ -119,9 +124,6 @@ def generate_response():
         return jsonify({"error": "Missing transcript"}), 400
     
     try:
-        # Set API key for request
-        openai.api_key = openai_api_key
-        
         transcript = data["transcript"]
         current_question = data.get("currentQuestion", "")
         options = data.get("options", {})
@@ -139,7 +141,7 @@ def generate_response():
         """
         
         # Call OpenAI Chat Completions API
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=options.get("model", "gpt-4o-mini"),
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -158,10 +160,13 @@ def generate_response():
 @app.route("/api/text-to-speech", methods=["POST"])
 def text_to_speech():
     """Convert text to speech using OpenAI TTS API"""
-    global openai_api_key
+    global openai_api_key, client
     
     if not openai_api_key:
         return jsonify({"error": "OpenAI API key not configured"}), 401
+    
+    if client is None:
+        client = openai.OpenAI(api_key=openai_api_key)
     
     data = request.json
     
@@ -169,16 +174,13 @@ def text_to_speech():
         return jsonify({"error": "Missing text"}), 400
     
     try:
-        # Set API key for request
-        openai.api_key = openai_api_key
-        
         text = data["text"]
         options = data.get("options", {})
         
-        # Call OpenAI TTS API
-        response = openai.Audio.create(
-            model="tts-1",
-            voice=options.get("voice", "nova"),
+        # Call OpenAI TTS API with more natural-sounding voice
+        response = client.audio.speech.create(
+            model="tts-1-hd",  # Using HD model for better quality
+            voice=options.get("voice", "alloy"),  # Alloy sounds more natural than Nova
             input=text,
             speed=options.get("speed", 1.0),
             response_format=options.get("format", "mp3")

@@ -52,6 +52,7 @@ export class OpenAIClient {
     if (!this.backendConnected && this.mockService) return this.mockService.transcribe();
     
     try {
+      console.log("Sending audio for transcription to backend");
       // Send to backend for transcription
       return await backendService.transcribe(audioBlob, options);
     } catch (error) {
@@ -72,6 +73,7 @@ export class OpenAIClient {
     if (!this.backendConnected && this.mockService) return this.mockService.generateResponse(transcript);
     
     try {
+      console.log("Sending transcript for AI response to backend");
       // Send to backend for processing
       return await backendService.generateResponse(transcript, currentQuestion, options);
     } catch (error) {
@@ -88,6 +90,7 @@ export class OpenAIClient {
     if (!this.backendConnected && this.mockService) return this.mockService.textToSpeech();
     
     try {
+      console.log("Sending text for TTS to backend");
       // Send to backend for TTS processing
       return await backendService.textToSpeech(text, options);
     } catch (error) {

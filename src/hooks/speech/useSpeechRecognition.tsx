@@ -1,6 +1,6 @@
 
 import "regenerator-runtime/runtime";
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import SpeechRecognition from 'react-speech-recognition';
 import { requestAudioPermission } from "@/utils/speechUtils";
 import { toast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ export const useSpeechRecognition = () => {
     }
     
     // Check/request permission if needed
-    if (hasMicPermission === false) {
+    if (hasMicPermission === null || hasMicPermission === false) {
       const hasPermission = await requestAudioPermission();
       setHasMicPermission(hasPermission);
       
@@ -56,6 +56,7 @@ export const useSpeechRecognition = () => {
     setStartAttempts(prev => prev + 1);
     
     try {
+      console.log("Starting speech recognition...");
       // Use continuous mode with long sessions to avoid breaks
       await SpeechRecognition.startListening({ 
         continuous: true, 
@@ -64,6 +65,11 @@ export const useSpeechRecognition = () => {
       
       setIsRecognitionActive(true);
       console.log('Started listening for speech');
+      
+      toast({
+        title: "Listening started",
+        description: "Speak clearly to begin transcription",
+      });
       
       // Reset attempt counter on successful start
       setStartAttempts(0);
@@ -84,10 +90,12 @@ export const useSpeechRecognition = () => {
    * Stop speech recognition
    */
   const stopListening = useCallback(() => {
-    SpeechRecognition.stopListening();
-    setIsRecognitionActive(false);
-    console.log('Stopped listening for speech');
-  }, []);
+    if (isRecognitionActive) {
+      console.log('Stopping speech recognition');
+      SpeechRecognition.stopListening();
+      setIsRecognitionActive(false);
+    }
+  }, [isRecognitionActive]);
   
   /**
    * Check microphone permission
@@ -102,10 +110,17 @@ export const useSpeechRecognition = () => {
         title: "Microphone access needed",
         description: "Please allow microphone access for speech recognition."
       });
+    } else {
+      console.log("Microphone permission granted!");
     }
     
     return hasPermission;
   }, []);
+
+  // Check for permission on mount
+  useEffect(() => {
+    checkMicPermission();
+  }, [checkMicPermission]);
 
   return {
     isRecognitionActive,

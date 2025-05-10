@@ -3,6 +3,7 @@ import { useCallback, useState, useRef } from "react";
 import { speakText } from "@/utils/speechUtils";
 import { useConversationContext } from "@/hooks/useConversationContext";
 import { processAIResponse, shouldAdvanceToNextQuestion } from "@/utils/aiResponseProcessor";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Hook for managing AI responses in the interview
@@ -35,12 +36,18 @@ const useAIResponse = (
     
     try {
       setIsProcessingAI(true);
+      toast({
+        title: "Processing response",
+        description: "Generating AI interviewer response..."
+      });
       
       // Add user message to context
       addToContext("Candidate", transcriptText);
       
       // Create context string with conversation history
       const contextString = getContextString(currentQuestion);
+      
+      console.log("Processing with AI. Context:", contextString);
       
       // Process with OpenAI
       const aiResponse = await processAIResponse(contextString, currentQuestion);
@@ -52,7 +59,11 @@ const useAIResponse = (
       addToTranscript("AI Interviewer", aiResponse);
       
       // Convert AI response to speech if system audio is enabled
-      await speakText(aiResponse, isSystemAudioOn);
+      await speakText(aiResponse, isSystemAudioOn, {
+        voice: "alloy", // More natural voice
+        speed: 1.0,
+        model: "tts-1-hd" // HD model for better quality
+      });
       
       // Check if we should move to the next question
       if (shouldAdvanceToNextQuestion(aiResponse)) {
@@ -61,6 +72,11 @@ const useAIResponse = (
       }
     } catch (error) {
       console.error("AI processing error:", error);
+      toast({
+        title: "AI Response Error",
+        description: "Failed to generate AI response. Please check your API key.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessingAI(false);
       

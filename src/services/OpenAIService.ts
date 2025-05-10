@@ -35,6 +35,7 @@ export class OpenAIService {
         contentBlob = await extractAudioFromVideo(audioBlob);
       }
 
+      console.log("Transcribing audio, size:", contentBlob.size, "type:", contentBlob.type);
       // Send to backend for transcription
       return await openAIClient.transcribe(contentBlob, options);
     } catch (error) {
@@ -50,6 +51,7 @@ export class OpenAIService {
    * @returns Promise with transcription result
    */
   async transcribeRealTime(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
+    console.log("Real-time transcription requested");
     // For real-time transcription, use enhanced prompting and settings
     return this.transcribe(audioBlob, {
       temperature: 0.2,
@@ -71,6 +73,7 @@ export class OpenAIService {
     currentQuestion: string, 
     options: ConversationOptions = {}
   ): Promise<string> {
+    console.log("Generating AI response for transcript:", transcript);
     return await openAIClient.generateResponse(transcript, currentQuestion, options);
   }
 
@@ -80,7 +83,12 @@ export class OpenAIService {
    * @param options - Configuration options
    * @returns Promise with audio blob
    */
-  async textToSpeech(text: string, options: TextToSpeechOptions = {}): Promise<Blob> {
+  async textToSpeech(text: string, options: TextToSpeechOptions = { 
+    voice: "alloy", // Using alloy for more natural voice
+    speed: 1.0, 
+    model: "tts-1-hd" // Using the HD model for better quality
+  }): Promise<Blob> {
+    console.log("Converting text to speech:", text);
     return await openAIClient.textToSpeech(text, options);
   }
 

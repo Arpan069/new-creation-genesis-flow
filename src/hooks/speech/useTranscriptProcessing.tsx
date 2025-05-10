@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import SpeechRecognition, { useSpeechRecognition as useSpeechRecognitionLib } from 'react-speech-recognition';
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Hook for processing speech recognition transcript
@@ -19,6 +20,7 @@ export const useTranscriptProcessing = (
   
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
   const silentPeriodTimer = useRef<NodeJS.Timeout | null>(null);
+  const firstTranscriptReceived = useRef<boolean>(false);
   
   /**
    * Reset transcript and processed state
@@ -26,6 +28,7 @@ export const useTranscriptProcessing = (
   const clearTranscript = useCallback(() => {
     resetTranscript();
     setLastProcessedTranscript('');
+    firstTranscriptReceived.current = false;
   }, [resetTranscript]);
 
   /**
@@ -34,10 +37,20 @@ export const useTranscriptProcessing = (
   const resetAndRestartListening = useCallback(() => {
     SpeechRecognition.stopListening().then(() => {
       resetTranscript();
+      console.log("Speech recognition reset, restarting...");
       setTimeout(() => {
         SpeechRecognition.startListening({ 
           continuous: true, 
           language: 'en-US',
+        }).then(() => {
+          console.log("Speech recognition restarted successfully");
+        }).catch(err => {
+          console.error("Failed to restart speech recognition:", err);
+          toast({
+            title: "Recognition Error",
+            description: "Failed to restart speech recognition. Please try again.",
+            variant: "destructive"
+          });
         });
       }, 1000);
     }).catch(err => {
@@ -48,6 +61,17 @@ export const useTranscriptProcessing = (
   // Process transcript changes with intelligent chunking
   useEffect(() => {
     if (!isInterviewActive || !transcript) return;
+    
+    // When first transcript is received
+    if (!firstTranscriptReceived.current && transcript.length > 0) {
+      firstTranscriptReceived.current = true;
+      console.log("First transcript received:", transcript);
+      
+      toast({
+        title: "Transcription active",
+        description: "Your speech is being transcribed",
+      });
+    }
     
     // Debounce processing to collect more complete phrases
     const timeoutId = setTimeout(() => {

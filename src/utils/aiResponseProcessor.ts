@@ -36,7 +36,8 @@ export const processAIResponse = async (
           If the candidate's answer shows they are done with this topic, end with "Let's move on to the next question."
           If the candidate's answer is unclear, ask them to clarify.
           IMPORTANT: Don't repeat yourself. Never say "Thank you for sharing" or similar phrases repeatedly.`,
-        maxTokens: options.maxTokens ?? 250
+        maxTokens: options.maxTokens ?? 250,
+        model: options.model ?? "gpt-4o-mini"
       }
     );
     
@@ -59,6 +60,9 @@ export const processAIResponse = async (
  * @returns Boolean indicating if should move to next question
  */
 export const shouldAdvanceToNextQuestion = (response: string): boolean => {
-  return response.includes("next question") || 
-         response.includes("Let's move on");
+  const lowerResponse = response.toLowerCase();
+  return lowerResponse.includes("next question") || 
+         lowerResponse.includes("let's move on") ||
+         lowerResponse.includes("move on to") ||
+         lowerResponse.includes("next topic");
 };

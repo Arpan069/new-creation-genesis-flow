@@ -41,14 +41,21 @@ export class BackendService extends BaseApiClient {
    * @returns Promise with transcription result
    */
   async transcribe(audioBlob: Blob, options: any = {}): Promise<{ text: string }> {
-    // Convert blob to base64
-    const base64Data = await this.blobToBase64(audioBlob);
-    
-    return this.makeRequest<{ text: string }>("transcribe", "POST", {
-      audio_data: base64Data,
-      mime_type: audioBlob.type,
-      options
-    });
+    try {
+      // Convert blob to base64
+      const base64Data = await this.blobToBase64(audioBlob);
+      
+      this.log(`Sending audio for transcription, size: ${audioBlob.size}, type: ${audioBlob.type}`);
+      
+      return this.makeRequest<{ text: string }>("transcribe", "POST", {
+        audio_data: base64Data,
+        mime_type: audioBlob.type,
+        options
+      });
+    } catch (error) {
+      console.error("Transcription request error:", error);
+      throw error;
+    }
   }
   
   /**
@@ -63,13 +70,18 @@ export class BackendService extends BaseApiClient {
     currentQuestion: string,
     options: any = {}
   ): Promise<string> {
-    const response = await this.makeRequest<{ response: string }>(
-      "generate-response", 
-      "POST", 
-      { transcript, currentQuestion, options }
-    );
-    
-    return response.response;
+    try {
+      const response = await this.makeRequest<{ response: string }>(
+        "generate-response", 
+        "POST", 
+        { transcript, currentQuestion, options }
+      );
+      
+      return response.response;
+    } catch (error) {
+      console.error("Generate response request error:", error);
+      throw error;
+    }
   }
   
   /**
@@ -79,14 +91,58 @@ export class BackendService extends BaseApiClient {
    * @returns Promise with audio URL
    */
   async textToSpeech(text: string, options: any = {}): Promise<Blob> {
-    const response = await this.makeRequest<{ audio_data: string }>(
-      "text-to-speech", 
-      "POST", 
-      { text, options }
-    );
+    try {
+      const response = await this.makeRequest<{ audio_data: string }>(
+        "text-to-speech", 
+        "POST", 
+        { text, options }
+      );
+      
+      // Convert base64 back to blob
+      return this.base64ToBlob(response.audio_data, "audio/mp3");
+    } catch (error) {
+      console.error("Text-to-speech request error:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Helper to convert blob to base64
+   */
+  private async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:audio/webm;base64,")
+        const base64 = result.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  
+  /**
+   * Helper to convert base64 to blob
+   */
+  private base64ToBlob(base64: string, mimeType: string): Blob {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
     
-    // Convert base64 back to blob
-    return this.base64ToBlob(response.audio_data, "audio/mp3");
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    
+    return new Blob(byteArrays, { type: mimeType });
   }
 }
 
