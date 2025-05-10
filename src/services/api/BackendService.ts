@@ -106,44 +106,7 @@ export class BackendService extends BaseApiClient {
     }
   }
   
-  /**
-   * Helper to convert blob to base64
-   */
-  private async blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove data URL prefix (e.g., "data:audio/webm;base64,")
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-  
-  /**
-   * Helper to convert base64 to blob
-   */
-  private base64ToBlob(base64: string, mimeType: string): Blob {
-    const byteCharacters = atob(base64);
-    const byteArrays = [];
-    
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-      const slice = byteCharacters.slice(offset, offset + 512);
-      
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-      
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-    
-    return new Blob(byteArrays, { type: mimeType });
-  }
+  // Removed the private blobToBase64 and base64ToBlob methods as they're inherited from BaseApiClient
 }
 
 // Export singleton instance for use throughout the app
