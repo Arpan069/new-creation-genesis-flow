@@ -43,14 +43,21 @@ export const useInterviewRecordingLogic = (
       // Start recording with real-time transcription enabled
       await videoRecorder.startRecording(stream, {
         enableRealTimeTranscription: true,
-        transcriptionCallback: (blob) => {
-          // This now correctly expects a Blob and passes it to the handler
-          handleRealTimeTranscription(blob);
+        transcriptionCallback: (text: string) => {
+          // Handle text transcriptions directly
+          console.log("Received transcription text:", text);
           
-          // For backward compatibility, we'll also try to extract text for the transcript
-          // In a real implementation, this would be handled properly with proper conversion
-          if (blob.type.indexOf('audio') >= 0 || blob.type.indexOf('video') >= 0) {
-            console.log("Received media chunk for transcription, size:", blob.size);
+          // If we have text, add it to the transcript
+          if (text && typeof text === 'string') {
+            // For demonstration, add the transcribed text to the transcript
+            console.log("Adding transcribed text to transcript");
+            
+            // For backward compatibility with the expected Blob interface in parent components
+            // Create a text blob with the transcribed text
+            const textBlob = new Blob([text], { type: 'text/plain' });
+            
+            // Pass the blob to the handler
+            handleRealTimeTranscription(textBlob);
           }
         }
       });

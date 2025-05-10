@@ -50,14 +50,22 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   // Use recording logic hook - Fixed by adapting the type handling
   const { startRecording, endRecording } = useInterviewRecordingLogic(
     addToTranscript,
-    // Use an adapter function to convert Blob to string
+    // Use an adapter function to handle Blob type
     (blob: Blob) => {
-      // Create a temporary URL for the blob
-      const blobUrl = URL.createObjectURL(blob);
-      // For demonstration, we'll log the URL
-      console.log("Received transcription blob URL:", blobUrl);
-      // Note: In a real implementation, we would need to process this blob
-      // and convert it to text before passing to handleRealTimeTranscription
+      // For text blobs, extract the text content
+      if (blob.type === 'text/plain') {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          if (text) {
+            handleRealTimeTranscription(text);
+          }
+        };
+        reader.readAsText(blob);
+      } else {
+        // For other blob types, just log the info
+        console.log("Received non-text blob:", blob.type, blob.size);
+      }
     },
     setIsRecording,
     setVideoUrl
@@ -111,24 +119,8 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
   const endInterview = useCallback(async () => { // Fixed: Implemented the missing function
     try {
       if (isRecording) {
-        // Stop recording and get the blob
-        const recordedBlob = await videoRecorder.stopRecording();
-        setIsRecording(false);
-        
-        // Save the recording and get the URL
-        const url = await videoRecorder.saveRecording(recordedBlob);
-        setVideoUrl(url);
-        
-        toast({
-          title: "Interview completed",
-          description: "Recording saved successfully",
-        });
+        return await endRecording();
       }
-      
-      // Navigate back to dashboard using navigate
-      const navigate = useNavigate();
-      navigate("/candidate/dashboard");
-      
       return true;
     } catch (error) {
       console.error("Error ending interview:", error);
@@ -138,13 +130,11 @@ export const useInterviewLogic = (isSystemAudioOn: boolean) => {
         variant: "destructive",
       });
       
-      // Navigate back to dashboard even on error
       const navigate = useNavigate();
       navigate("/candidate/dashboard");
-      
       return false;
     }
-  }, [isRecording]);
+  }, [isRecording, endRecording]);
 
   // Clean up on component unmount
   useEffect(() => {
