@@ -5,7 +5,7 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 import { toast } from "@/hooks/use-toast";
 import { requestAudioPermission } from "@/utils/speechUtils";
 
-export const useSpeechToText = (
+const useSpeechToText = (
   onTranscript: (text: string) => void,
   isInterviewActive: boolean = false
 ) => {
@@ -228,3 +228,5 @@ export const useSpeechToText = (
     resetAndRestartListening
   };
 };
+
+export { useSpeechToText };

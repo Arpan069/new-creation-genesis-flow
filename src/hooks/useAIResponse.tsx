@@ -7,7 +7,7 @@ import { processAIResponse, shouldAdvanceToNextQuestion } from "@/utils/aiRespon
 /**
  * Hook for managing AI responses in the interview
  */
-export const useAIResponse = (
+const useAIResponse = (
   isSystemAudioOn: boolean,
   addToTranscript: (speaker: string, text: string) => void,
   advanceToNextQuestion: () => void
@@ -89,3 +89,5 @@ export const useAIResponse = (
     resetConversation
   };
 };
+
+export { useAIResponse };

@@ -6,7 +6,7 @@ import { videoRecorder } from "@/utils/videoRecording";
 /**
  * Hook for managing interview initialization and cleanup
  */
-export const useInterviewInitialization = (
+const useInterviewInitialization = (
   questions: string[],
   setCurrentQuestion: (question: string) => void,
   resetConversation: () => void,
@@ -90,3 +90,5 @@ export const useInterviewInitialization = (
     cleanupRecording
   };
 };
+
+export { useInterviewInitialization };

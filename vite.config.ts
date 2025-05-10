@@ -12,6 +12,7 @@ export default defineConfig({
     },
   },
   server: {
+    port: 8080,
     proxy: {
       // Proxy API requests to the Flask backend during development
       '/api': {

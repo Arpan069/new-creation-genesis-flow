@@ -14,7 +14,7 @@ import { useInterviewInitialization } from "./useInterviewInitialization";
 /**
  * Custom hook for managing interview logic and state
  */
-export const useInterview = (isSystemAudioOn: boolean) => {
+const useInterview = (isSystemAudioOn: boolean) => {
   // Navigation hook for redirecting after interview
   const navigate = useNavigate();
   
@@ -236,3 +236,5 @@ export const useInterview = (isSystemAudioOn: boolean) => {
     hasMicPermission
   };
 };
+
+export { useInterview };

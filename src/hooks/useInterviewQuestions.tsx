@@ -5,7 +5,7 @@ import { speakText } from "@/utils/speechUtils";
 /**
  * Hook for managing interview questions
  */
-export const useInterviewQuestions = (
+const useInterviewQuestions = (
   isSystemAudioOn: boolean,
   addToTranscript: (speaker: string, text: string) => void
 ) => {
@@ -88,3 +88,5 @@ export const useInterviewQuestions = (
     resetQuestions
   };
 };
+
+export { useInterviewQuestions };
