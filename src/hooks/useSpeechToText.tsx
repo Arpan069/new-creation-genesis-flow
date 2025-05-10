@@ -3,10 +3,13 @@ import { useEffect, useCallback } from 'react';
 import { useTranscriptProcessing } from './speech/useTranscriptProcessing';
 import { useSpeechRecognition } from './speech/useSpeechRecognition';
 
-const useSpeechToText = (
+/**
+ * A hook for speech-to-text functionality
+ */
+export function useSpeechToText(
   onTranscript: (text: string) => void,
   isInterviewActive: boolean = false
-) => {
+) {
   // Use our speech recognition hooks
   const {
     isRecognitionActive,
@@ -76,6 +79,4 @@ const useSpeechToText = (
     hasMicPermission,
     resetAndRestartListening
   };
-};
-
-export { useSpeechToText };
+}

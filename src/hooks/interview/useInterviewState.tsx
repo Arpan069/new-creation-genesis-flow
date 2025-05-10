@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useTranscript } from "@/hooks/useTranscript";
 
 /**
- * Hook for managing interview state
+ * Custom hook for managing interview state
  */
-export const useInterviewState = () => {
+export function useInterviewState() {
   const navigate = useNavigate();
   
   // Core interview state
@@ -35,4 +35,4 @@ export const useInterviewState = () => {
     addToTranscript,
     navigateToDashboard
   };
-};
+}

@@ -5,9 +5,9 @@ import { videoRecorder } from "@/utils/videoRecording";
 import { speakText } from "@/utils/speechUtils";
 
 /**
- * Hook for managing interview actions
+ * Custom hook for managing interview actions
  */
-export const useInterviewActions = (
+export function useInterviewActions(
   isSystemAudioOn: boolean,
   questions: string[],
   isRecording: boolean,
@@ -16,7 +16,7 @@ export const useInterviewActions = (
   navigateToDashboard: () => void,
   stopListening: () => void,
   deactivateSpeechRecognition: () => void
-) => {
+) {
   /**
    * End the interview and save recording
    */
@@ -83,4 +83,4 @@ export const useInterviewActions = (
     endInterview,
     speakFirstQuestion
   };
-};
+}
