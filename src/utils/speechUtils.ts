@@ -14,7 +14,7 @@ const openAIService = new OpenAIService();
 export const speakText = async (
   text: string, 
   isSystemAudioOn: boolean,
-  options: TextToSpeechOptions = { voice: "alloy", speed: 1.0, model: "tts-1-hd" }
+  options: TextToSpeechOptions = { voice: "nova", speed: 1.0, model: "tts-1-hd" }
 ): Promise<void> => {
   if (!isSystemAudioOn || !text) return Promise.resolve();
   

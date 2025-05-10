@@ -84,7 +84,7 @@ export class OpenAIService {
    * @returns Promise with audio blob
    */
   async textToSpeech(text: string, options: TextToSpeechOptions = { 
-    voice: "alloy", // Using alloy for more natural voice
+    voice: "nova", // Using nova voice for more natural sound
     speed: 1.0, 
     model: "tts-1-hd" // Using the HD model for better quality
   }): Promise<Blob> {

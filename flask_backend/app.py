@@ -165,6 +165,7 @@ def text_to_speech():
     if not openai_api_key:
         return jsonify({"error": "OpenAI API key not configured"}), 401
     
+    # Initialize the OpenAI client with just the API key, no extra parameters
     if client is None:
         client = openai.OpenAI(api_key=openai_api_key)
     
@@ -179,11 +180,10 @@ def text_to_speech():
         
         # Call OpenAI TTS API with more natural-sounding voice
         response = client.audio.speech.create(
-            model="tts-1-hd",  # Using HD model for better quality
-            voice=options.get("voice", "alloy"),  # Alloy sounds more natural than Nova
+            model=options.get("model", "tts-1-hd"),
+            voice=options.get("voice", "nova"),  # Using nova for a more natural voice
             input=text,
-            speed=options.get("speed", 1.0),
-            response_format=options.get("format", "mp3")
+            speed=options.get("speed", 1.0)
         )
         
         # Convert audio to base64
