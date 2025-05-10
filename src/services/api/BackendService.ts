@@ -5,17 +5,15 @@
  */
 
 import { BACKEND_CONFIG } from "@/config/backendConfig";
-import { RequestHelper } from './RequestHelper';
+import { BaseApiClient } from './BaseApiClient';
 import { BackendError } from './BackendError';
 
 /**
  * Service for making requests to the Flask backend
  */
-export class BackendService {
-  private requestHelper: RequestHelper;
-  
+export class BackendService extends BaseApiClient {
   constructor(config = BACKEND_CONFIG) {
-    this.requestHelper = new RequestHelper(
+    super(
       config.baseUrl,
       config.debug,
       config.retry
@@ -28,10 +26,10 @@ export class BackendService {
    */
   async isBackendAvailable(): Promise<boolean> {
     try {
-      await this.requestHelper.makeRequest<{status: string}>('health');
+      await this.makeRequest<{status: string}>('health');
       return true;
     } catch (error) {
-      this.requestHelper.log('Backend health check failed:', error);
+      this.log('Backend health check failed:', error);
       return false;
     }
   }
@@ -44,9 +42,9 @@ export class BackendService {
    */
   async transcribe(audioBlob: Blob, options: any = {}): Promise<{ text: string }> {
     // Convert blob to base64
-    const base64Data = await this.requestHelper.blobToBase64(audioBlob);
+    const base64Data = await this.blobToBase64(audioBlob);
     
-    return this.requestHelper.makeRequest<{ text: string }>("transcribe", "POST", {
+    return this.makeRequest<{ text: string }>("transcribe", "POST", {
       audio_data: base64Data,
       mime_type: audioBlob.type,
       options
@@ -65,7 +63,7 @@ export class BackendService {
     currentQuestion: string,
     options: any = {}
   ): Promise<string> {
-    const response = await this.requestHelper.makeRequest<{ response: string }>(
+    const response = await this.makeRequest<{ response: string }>(
       "generate-response", 
       "POST", 
       { transcript, currentQuestion, options }
@@ -81,14 +79,14 @@ export class BackendService {
    * @returns Promise with audio URL
    */
   async textToSpeech(text: string, options: any = {}): Promise<Blob> {
-    const response = await this.requestHelper.makeRequest<{ audio_data: string }>(
+    const response = await this.makeRequest<{ audio_data: string }>(
       "text-to-speech", 
       "POST", 
       { text, options }
     );
     
     // Convert base64 back to blob
-    return this.requestHelper.base64ToBlob(response.audio_data, "audio/mp3");
+    return this.base64ToBlob(response.audio_data, "audio/mp3");
   }
 }
 
