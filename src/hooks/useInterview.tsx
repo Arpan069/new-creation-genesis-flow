@@ -8,6 +8,8 @@ import { useTranscript } from "@/hooks/useTranscript";
 import { useInterviewQuestions } from "@/hooks/useInterviewQuestions";
 import { useAIResponse } from "@/hooks/useAIResponse";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
+import { useSpeechMonitor } from "./useSpeechMonitor";
+import { useInterviewInitialization } from "./useInterviewInitialization";
 
 /**
  * Custom hook for managing interview logic and state
@@ -20,7 +22,6 @@ export const useInterview = (isSystemAudioOn: boolean) => {
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isSpeechRecognitionActive, setIsSpeechRecognitionActive] = useState(false);
   
   // Use custom hooks
   const { transcript, addToTranscript } = useTranscript();
@@ -75,25 +76,32 @@ export const useInterview = (isSystemAudioOn: boolean) => {
     hasMicPermission
   } = useSpeechToText(handleSpeechTranscript, isInterviewStarted);
 
-  // Monitor and restart speech recognition if it stops unexpectedly
-  useEffect(() => {
-    let checkInterval: NodeJS.Timeout | null = null;
-    
-    if (isInterviewStarted && !isProcessingAI) {
-      checkInterval = setInterval(() => {
-        if (!isListening && isSpeechRecognitionActive) {
-          console.log("Speech recognition appears to have stopped, restarting...");
-          resetAndRestartListening();
-        }
-      }, 5000); // Check every 5 seconds
-    }
-    
-    return () => {
-      if (checkInterval) {
-        clearInterval(checkInterval);
-      }
-    };
-  }, [isInterviewStarted, isListening, isSpeechRecognitionActive, isProcessingAI, resetAndRestartListening]);
+  // Use speech monitoring hook
+  const { 
+    isSpeechRecognitionActive, 
+    activateSpeechRecognition, 
+    deactivateSpeechRecognition 
+  } = useSpeechMonitor(
+    isInterviewStarted, 
+    isProcessingAI, 
+    isListening, 
+    resetAndRestartListening
+  );
+
+  // Use interview initialization hook
+  const {
+    initializeInterview,
+    startInterviewRecording
+  } = useInterviewInitialization(
+    questions,
+    setCurrentQuestion,
+    resetConversation,
+    resetQuestions,
+    setIsInterviewStarted,
+    setIsRecording,
+    addToTranscript,
+    clearSpeechTranscript
+  );
 
   /**
    * Start the interview and recording
@@ -101,25 +109,15 @@ export const useInterview = (isSystemAudioOn: boolean) => {
    */
   const startInterview = useCallback(async (stream: MediaStream) => {
     try {
-      // Reset any previous state
-      resetConversation();
-      resetQuestions();
+      // Initialize interview with first question
+      const initialized = await initializeInterview();
       
-      // Set interview as started
-      setIsInterviewStarted(true);
-      
-      // Set the first question
-      setCurrentQuestion(questions[0]);
+      if (!initialized) return;
       
       // Start recording
-      await videoRecorder.startRecording(stream);
-      setIsRecording(true);
+      const recordingStarted = await startInterviewRecording(stream);
       
-      // Clear any previous transcript
-      clearSpeechTranscript();
-      
-      // Add initial AI question to transcript
-      addToTranscript("AI Interviewer", questions[0]);
+      if (!recordingStarted) return;
       
       // Delay speaking slightly to ensure UI updates first
       setTimeout(() => {
@@ -128,14 +126,14 @@ export const useInterview = (isSystemAudioOn: boolean) => {
           .then(() => {
             // Start listening for speech after AI finishes speaking
             startListening();
-            setIsSpeechRecognitionActive(true);
+            activateSpeechRecognition();
             console.log("Started listening after AI spoke");
           })
           .catch(err => {
             console.error("Error during AI speech:", err);
             // Still start listening even if speech fails
             startListening();
-            setIsSpeechRecognitionActive(true);
+            activateSpeechRecognition();
           });
       }, 500);
       
@@ -162,7 +160,10 @@ export const useInterview = (isSystemAudioOn: boolean) => {
     clearSpeechTranscript,
     resetConversation,
     resetQuestions,
-    setCurrentQuestion
+    setCurrentQuestion,
+    initializeInterview,
+    startInterviewRecording,
+    activateSpeechRecognition
   ]);
 
   /**
@@ -172,7 +173,7 @@ export const useInterview = (isSystemAudioOn: boolean) => {
     try {
       // Stop speech recognition
       stopListening();
-      setIsSpeechRecognitionActive(false);
+      deactivateSpeechRecognition();
       
       if (isRecording) {
         // Stop recording and get the blob
@@ -200,7 +201,12 @@ export const useInterview = (isSystemAudioOn: boolean) => {
       });
       navigate("/candidate/dashboard");
     }
-  }, [isRecording, navigate, stopListening]);
+  }, [
+    isRecording,
+    navigate, 
+    stopListening, 
+    deactivateSpeechRecognition
+  ]);
 
   // Clean up on component unmount
   useEffect(() => {
@@ -210,9 +216,9 @@ export const useInterview = (isSystemAudioOn: boolean) => {
         videoRecorder.cleanup();
       }
       stopListening();
-      setIsSpeechRecognitionActive(false);
+      deactivateSpeechRecognition();
     };
-  }, [isRecording, stopListening]);
+  }, [isRecording, stopListening, deactivateSpeechRecognition]);
 
   return {
     isInterviewStarted,
