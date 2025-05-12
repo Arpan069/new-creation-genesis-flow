@@ -75,8 +75,24 @@ const VideoFeed = ({
           autoPlay
           playsInline
           muted
-          className="w-full h-full object-cover rounded-md"
+          className={`w-full h-full object-cover rounded-md ${!isVideoOn ? 'bg-black' : ''}`}
+          onLoadedMetadata={(e) => {
+            // Attempt to play the video once metadata is loaded
+            const video = e.currentTarget;
+            if (video) {
+              video.play().catch(err => {
+                console.error("Error playing video:", err);
+              });
+            }
+          }}
         />
+        
+        {/* Display a message if video is turned off */}
+        {!isVideoOn && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-center">
+            <p>Camera is turned off</p>
+          </div>
+        )}
         
         {/* Live transcription overlay */}
         {isRecording && showTranscribed && lastTranscribed && (

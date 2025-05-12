@@ -28,6 +28,15 @@ export const useInterviewMedia = () => {
           
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
+            
+            // Attempt to play the video immediately after setting srcObject
+            try {
+              await videoRef.current.play();
+              console.log("Video playback started successfully");
+            } catch (playError) {
+              console.error("Error playing video after initialization:", playError);
+              // Don't throw here, we still want to continue with audio setup
+            }
           }
 
           // Check specifically if audio tracks are available
@@ -35,8 +44,20 @@ export const useInterviewMedia = () => {
           if (audioTracks.length === 0) {
             console.warn("No audio tracks available");
           }
+          
+          // Check specifically if video tracks are available
+          const videoTracks = stream.getVideoTracks();
+          if (videoTracks.length === 0) {
+            console.warn("No video tracks available");
+            setIsVideoOn(false);
+          }
         } else {
           console.error("getUserMedia is not supported in this browser");
+          toast({
+            title: "Browser Compatibility Issue",
+            description: "Your browser doesn't support camera access.",
+            variant: "destructive",
+          });
         }
         
         // Set loading to false after a small delay
@@ -47,9 +68,22 @@ export const useInterviewMedia = () => {
       } catch (error) {
         console.error("Error accessing media devices:", error);
         setIsLoading(false);
+        setIsVideoOn(false); // Turn off video if there's an error
         
         if (error instanceof DOMException && error.name === "NotAllowedError") {
           console.log("User denied permission for media devices");
+          toast({
+            title: "Permission Denied",
+            description: "Camera access is required for the interview.",
+            variant: "destructive",
+          });
+        } else if (error instanceof DOMException && error.name === "NotFoundError") {
+          console.log("No camera found");
+          toast({
+            title: "No Camera Found",
+            description: "Make sure your camera is properly connected.",
+            variant: "destructive",
+          });
         }
       }
     };
@@ -85,6 +119,14 @@ export const useInterviewMedia = () => {
           const videoTrack = newStream.getVideoTracks()[0];
           stream.addTrack(videoTrack);
           setIsVideoOn(true);
+          
+          // Update video source if needed
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch(err => {
+              console.error("Error playing video after adding track:", err);
+            });
+          }
         } catch (error) {
           console.error("Could not access camera.", error);
           toast({
@@ -149,6 +191,12 @@ export const useInterviewMedia = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        try {
+          await videoRef.current.play();
+          console.log("Video playback started after permissions request");
+        } catch (playError) {
+          console.error("Error playing video after permissions request:", playError);
+        }
       }
       
       setIsVideoOn(true);
@@ -165,6 +213,7 @@ export const useInterviewMedia = () => {
         description: "Could not get access to your camera and microphone.",
         variant: "destructive",
       });
+      setIsVideoOn(false);
     } finally {
       setIsLoading(false);
     }
