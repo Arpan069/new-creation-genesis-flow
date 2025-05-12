@@ -4,6 +4,7 @@ import { UserCheck, MicOff, Mic, Volume2, VolumeX } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import VideoControls from "./VideoControls";
+import { toast } from "@/components/ui/use-toast";
 
 interface VideoFeedProps {
   videoRef: RefObject<HTMLVideoElement>;
@@ -36,6 +37,7 @@ const VideoFeed = ({
   lastTranscribed = ""
 }: VideoFeedProps) => {
   const [showTranscribed, setShowTranscribed] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   
   // Show the transcribed text briefly when it changes
   useEffect(() => {
@@ -69,6 +71,24 @@ const VideoFeed = ({
           </div>
         )}
         
+        {/* Video error message */}
+        {videoError && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background/90 p-4 rounded-md z-10 text-center">
+            <p className="font-medium text-red-500">Video Error</p>
+            <p className="text-sm text-muted-foreground">{videoError}</p>
+            {requestMediaPermissions && (
+              <Button 
+                onClick={requestMediaPermissions} 
+                variant="default" 
+                size="sm" 
+                className="mt-2"
+              >
+                Grant Camera Access
+              </Button>
+            )}
+          </div>
+        )}
+        
         {/* Main video element that displays the user's camera feed */}
         <video
           ref={videoRef}
@@ -82,13 +102,18 @@ const VideoFeed = ({
             if (video) {
               video.play().catch(err => {
                 console.error("Error playing video:", err);
+                setVideoError("Could not play video stream. Please check permissions.");
               });
             }
+          }}
+          onError={(e) => {
+            console.error("Video element error:", e);
+            setVideoError("Video stream error. Try refreshing the page.");
           }}
         />
         
         {/* Display a message if video is turned off */}
-        {!isVideoOn && (
+        {!isVideoOn && !videoError && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-center">
             <p>Camera is turned off</p>
           </div>
