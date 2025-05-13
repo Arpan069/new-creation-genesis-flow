@@ -58,7 +58,8 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
   // Handle API key configuration success
   const handleApiKeySuccess = () => {
     setShowApiConfig(false);
-    setIsApiKeyConfigured(true);
+    // We don't need to set isApiKeyConfigured here as it's managed by the hook
+    // Just close the API config dialog
   };
   
   // If API key needs configuration, show setup screen
