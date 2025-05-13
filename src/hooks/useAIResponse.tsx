@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useRef } from "react";
 import { speakText } from "@/utils/speechUtils";
 import { useConversationContext } from "@/hooks/useConversationContext";
@@ -70,8 +71,10 @@ const useAIResponse = (
         // Add a small delay to account for avatar generation time
         setTimeout(() => {
           advanceToNextQuestion();
-        }, 1000);
+        }, 5000); // Increased delay to give more time for avatar speaking
       }
+      
+      return aiResponse;
     } catch (error) {
       console.error("AI processing error:", error);
       toast({
@@ -79,6 +82,7 @@ const useAIResponse = (
         description: "Failed to generate AI response. Please check your API key.",
         variant: "destructive"
       });
+      return null;
     } finally {
       setIsProcessingAI(false);
       

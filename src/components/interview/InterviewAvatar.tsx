@@ -19,6 +19,7 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showApiConfig, setShowApiConfig] = useState(false);
+  const prevQuestionRef = useRef<string>("");
   
   // Use the Heygen avatar hook
   const {
@@ -39,7 +40,15 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
   
   // Effect to generate video when new question is asked
   useEffect(() => {
-    if (currentQuestion && isInterviewStarted && isSystemAudioOn && isApiKeyConfigured) {
+    if (currentQuestion && 
+        isInterviewStarted && 
+        isSystemAudioOn && 
+        isApiKeyConfigured && 
+        currentQuestion !== prevQuestionRef.current) {
+      
+      console.log("New question detected, generating avatar:", currentQuestion);
+      prevQuestionRef.current = currentQuestion;
+      
       // Generate avatar video for the current question
       speakWithAvatar(currentQuestion);
     }
@@ -48,10 +57,19 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
   // Effect to play video when URL is available
   useEffect(() => {
     if (videoRef.current && currentVideoUrl) {
+      console.log("Playing Heygen video:", currentVideoUrl);
+      
+      // Set the video source and play it
       videoRef.current.src = currentVideoUrl;
-      videoRef.current.play().catch(err => {
-        console.error("Error playing video:", err);
-      });
+      
+      // Wait a moment to ensure the video has loaded before playing
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(err => {
+            console.error("Error playing video:", err);
+          });
+        }
+      }, 200);
     }
   }, [currentVideoUrl]);
   
@@ -59,7 +77,6 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
   const handleApiKeySuccess = () => {
     setShowApiConfig(false);
     // We don't need to set isApiKeyConfigured here as it's managed by the hook
-    // Just close the API config dialog
   };
   
   // If API key needs configuration, show setup screen
@@ -96,6 +113,8 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
                   onEnded={handleVideoEnd}
                   playsInline
                   muted={!isSystemAudioOn}
+                  autoPlay
+                  loop={false}
                 />
               ) : (
                 <img 
@@ -108,7 +127,7 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
           </div>
           
           {/* Configure API button */}
-          {isApiKeyConfigured === null && (
+          {(isApiKeyConfigured === null || isApiKeyConfigured === false) && (
             <Button 
               size="sm"
               variant="outline"

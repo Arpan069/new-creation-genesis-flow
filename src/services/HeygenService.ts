@@ -21,9 +21,15 @@ export class HeygenService {
    * Set the API key for Heygen
    */
   setApiKey(key: string) {
+    if (!key || key.trim().length === 0) {
+      console.error("Invalid API key provided");
+      return false;
+    }
+    
     this.apiKey = key;
     // Save to localStorage for persistence
     localStorage.setItem("heygen_api_key", key);
+    console.log("Heygen API key configured successfully");
     return true;
   }
   
@@ -42,7 +48,8 @@ export class HeygenService {
    * Check if API key is configured
    */
   isApiKeyConfigured(): boolean {
-    return !!this.getApiKey();
+    const key = this.getApiKey();
+    return !!key && key.trim().length > 0;
   }
   
   /**
@@ -52,10 +59,13 @@ export class HeygenService {
     const apiKey = this.getApiKey();
     
     if (!apiKey) {
+      console.error("Heygen API key not configured");
       throw new Error("Heygen API key not configured");
     }
     
     try {
+      console.log("Generating video with Heygen API:", text.substring(0, 50) + "...");
+      
       // Use a default avatar if not specified
       const defaultOptions: HeygenVideoOptions = {
         input_text: text,
@@ -95,15 +105,33 @@ export class HeygenService {
         })
       };
       
+      console.log("Sending request to Heygen API...");
+      
       // Call the Heygen API to generate video
       const response = await fetch(`${this.baseUrl}/videos.generate`, requestOptions);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Heygen API error: ${errorData.message || response.statusText}`);
+        const errorText = await response.text();
+        let errorMessage = "Unknown error";
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || response.statusText;
+        } catch (e) {
+          errorMessage = errorText || response.statusText;
+        }
+        
+        console.error(`Heygen API error (${response.status}):`, errorMessage);
+        throw new Error(`Heygen API error: ${errorMessage}`);
       }
       
       const data = await response.json();
+      console.log("Heygen API response:", data);
+      
+      if (!data.data || !data.data.video_url) {
+        console.error("Heygen API returned invalid response:", data);
+        throw new Error("Invalid response from Heygen API");
+      }
       
       // Return the video URL
       return data.data.video_url;

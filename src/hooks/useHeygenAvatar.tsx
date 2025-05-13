@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { heygenService } from "@/services/HeygenService";
 import { toast } from "@/hooks/use-toast";
 
@@ -11,6 +11,7 @@ export const useHeygenAvatar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const videoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Check if API key is configured on mount
   useEffect(() => {
@@ -18,21 +19,47 @@ export const useHeygenAvatar = () => {
     setIsApiKeyConfigured(configured);
   }, []);
   
+  // Clear the video timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (videoTimeoutRef.current) {
+        clearTimeout(videoTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   /**
    * Generate and play an AI avatar video for the given text
    */
   const speakWithAvatar = useCallback(async (text: string, options = {}) => {
     if (!text || !heygenService.isApiKeyConfigured()) {
-      return;
+      return null;
     }
     
     try {
       setIsLoading(true);
       setIsSpeaking(true);
       
+      console.log("Generating Heygen video for text:", text);
+      
       // Generate video with Heygen API
       const videoUrl = await heygenService.generateVideo(text, options);
+      console.log("Received video URL from Heygen:", videoUrl);
       setCurrentVideoUrl(videoUrl);
+      
+      // Set a timeout to mark speaking as complete after estimated duration
+      // Average speaking rate is about 150 words per minute, or 2.5 words per second
+      // Estimate 400ms per word plus 2 seconds buffer
+      const wordCount = text.split(/\s+/).length;
+      const estimatedDuration = (wordCount * 400) + 2000;
+      
+      if (videoTimeoutRef.current) {
+        clearTimeout(videoTimeoutRef.current);
+      }
+      
+      videoTimeoutRef.current = setTimeout(() => {
+        setIsSpeaking(false);
+      }, estimatedDuration);
       
       return videoUrl;
     } catch (error) {
@@ -42,6 +69,7 @@ export const useHeygenAvatar = () => {
         description: "Could not generate AI avatar video. Check your API key.",
         variant: "destructive"
       });
+      setIsSpeaking(false);
       return null;
     } finally {
       setIsLoading(false);
@@ -53,6 +81,10 @@ export const useHeygenAvatar = () => {
    */
   const handleVideoEnd = useCallback(() => {
     setIsSpeaking(false);
+    if (videoTimeoutRef.current) {
+      clearTimeout(videoTimeoutRef.current);
+      videoTimeoutRef.current = null;
+    }
   }, []);
   
   return {
