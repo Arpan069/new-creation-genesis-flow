@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef } from "react";
 import { speakText } from "@/utils/speechUtils";
 import { useConversationContext } from "@/hooks/useConversationContext";
@@ -22,7 +21,7 @@ const useAIResponse = (
    * @param transcriptText The transcribed text to process
    * @param currentQuestion The current interview question
    */
-  const processWithOpenAI = useCallback(async (transcriptText: string, currentQuestion: string) => {
+  const processWithOpenAI = useCallback(async (transcriptText: string, currentQuestion: string): Promise<void> => {
     // Skip if text is very short (likely noise)
     if (transcriptText.trim().split(/\s+/).length < 2) {
       console.log("Text too short, skipping AI processing");
@@ -74,7 +73,6 @@ const useAIResponse = (
         }, 5000); // Increased delay to give more time for avatar speaking
       }
       
-      return aiResponse;
     } catch (error) {
       console.error("AI processing error:", error);
       toast({
@@ -82,7 +80,6 @@ const useAIResponse = (
         description: "Failed to generate AI response. Please check your API key.",
         variant: "destructive"
       });
-      return null;
     } finally {
       setIsProcessingAI(false);
       
