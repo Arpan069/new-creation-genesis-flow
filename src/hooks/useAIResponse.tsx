@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef } from "react";
 import { speakText } from "@/utils/speechUtils";
 import { useConversationContext } from "@/hooks/useConversationContext";
@@ -58,17 +57,20 @@ const useAIResponse = (
       // Add AI response to transcript
       addToTranscript("AI Interviewer", aiResponse);
       
-      // Convert AI response to speech if system audio is enabled
-      await speakText(aiResponse, isSystemAudioOn, {
-        voice: "alloy", // More natural voice
-        speed: 1.0,
-        model: "tts-1-hd" // HD model for better quality
-      });
+      // The actual speech synthesis is now handled by the InterviewAvatar component
+      // which will detect the new AI response and generate a video
+      // We keep this for backwards compatibility and as a fallback
+      if (!isSystemAudioOn) {
+        console.log("System audio is off, skipping speech synthesis");
+      }
       
       // Check if we should move to the next question
       if (shouldAdvanceToNextQuestion(aiResponse)) {
         // Advance to next question after speech completes
-        advanceToNextQuestion();
+        // Add a small delay to account for avatar generation time
+        setTimeout(() => {
+          advanceToNextQuestion();
+        }, 1000);
       }
     } catch (error) {
       console.error("AI processing error:", error);

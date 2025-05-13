@@ -1,6 +1,10 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useHeygenAvatar } from "@/hooks/useHeygenAvatar";
+import { Button } from "@/components/ui/button";
+import HeygenApiKeySetup from "@/components/interview/HeygenApiKeySetup";
+import { Mic, Loader2 } from "lucide-react";
 
 interface InterviewAvatarProps {
   isInterviewStarted: boolean;
@@ -13,21 +17,54 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
   currentQuestion,
   isSystemAudioOn
 }) => {
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [showApiConfig, setShowApiConfig] = useState(false);
   
+  // Use the Heygen avatar hook
+  const {
+    isApiKeyConfigured,
+    isLoading,
+    isSpeaking,
+    currentVideoUrl,
+    speakWithAvatar,
+    handleVideoEnd
+  } = useHeygenAvatar();
+  
+  // Effect to show API config if needed
   useEffect(() => {
-    if (currentQuestion && isInterviewStarted) {
-      // Simulate AI speaking
-      setIsSpeaking(true);
-      const speakingDuration = Math.min(currentQuestion.length * 100, 4000);
-      
-      const timer = setTimeout(() => {
-        setIsSpeaking(false);
-      }, speakingDuration);
-      
-      return () => clearTimeout(timer);
+    if (isApiKeyConfigured === false) {
+      setShowApiConfig(true);
     }
-  }, [currentQuestion, isInterviewStarted]);
+  }, [isApiKeyConfigured]);
+  
+  // Effect to generate video when new question is asked
+  useEffect(() => {
+    if (currentQuestion && isInterviewStarted && isSystemAudioOn && isApiKeyConfigured) {
+      // Generate avatar video for the current question
+      speakWithAvatar(currentQuestion);
+    }
+  }, [currentQuestion, isInterviewStarted, isSystemAudioOn, isApiKeyConfigured, speakWithAvatar]);
+  
+  // Effect to play video when URL is available
+  useEffect(() => {
+    if (videoRef.current && currentVideoUrl) {
+      videoRef.current.src = currentVideoUrl;
+      videoRef.current.play().catch(err => {
+        console.error("Error playing video:", err);
+      });
+    }
+  }, [currentVideoUrl]);
+  
+  // Handle API key configuration success
+  const handleApiKeySuccess = () => {
+    setShowApiConfig(false);
+    setIsApiKeyConfigured(true);
+  };
+  
+  // If API key needs configuration, show setup screen
+  if (showApiConfig) {
+    return <HeygenApiKeySetup onSuccess={handleApiKeySuccess} />;
+  }
   
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center">
@@ -46,14 +83,40 @@ const InterviewAvatar: React.FC<InterviewAvatarProps> = ({
           <div className="rounded-full bg-primary/10 p-1 mb-4">
             <div className={`rounded-full overflow-hidden border-4 ${
               isSpeaking && isSystemAudioOn ? 'border-primary animate-pulse' : 'border-primary/30'
-            }`} style={{ width: '250px', height: '250px' }}> {/* Increased from 200px to 250px */}
-              <img 
-                src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
-                alt="AI Interviewer Avatar" 
-                className="w-full h-full object-cover"
-              />
+            }`} style={{ width: '250px', height: '250px' }}>
+              {isLoading ? (
+                <div className="w-full h-full flex items-center justify-center bg-black/10">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              ) : currentVideoUrl ? (
+                <video 
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  onEnded={handleVideoEnd}
+                  playsInline
+                  muted={!isSystemAudioOn}
+                />
+              ) : (
+                <img 
+                  src="/lovable-uploads/dd63a16d-398e-4187-a982-b19a91446630.png" 
+                  alt="AI Interviewer Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
+          
+          {/* Configure API button */}
+          {isApiKeyConfigured === null && (
+            <Button 
+              size="sm"
+              variant="outline"
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-xs"
+              onClick={() => setShowApiConfig(true)}
+            >
+              Configure Heygen API
+            </Button>
+          )}
           
           {/* Speaking indicator */}
           <AnimatePresence>
