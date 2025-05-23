@@ -11,7 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import EnhancedBackground from "@/components/EnhancedBackground";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ApiKeySetup } from "@/components/interview/ApiKeySetup";
-import type { TranscriptItem } from "@/types/interview"; // Added import for TranscriptItem
+import type { TranscriptItem } from "@/types/interview"; 
+import type { Transcript } from "@/types/transcript"; // To properly type the state
 
 const InterviewPage = () => {
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
@@ -35,9 +36,9 @@ const InterviewPage = () => {
     isRecording,
     isProcessingAI,
     currentQuestion,
-    transcript, // transcript is available here
+    transcript, // This is Transcript[] from useTranscript
     startInterview,
-    endInterview, // endInterview expects currentTranscript
+    endInterview, // This expects TranscriptItem[]
     currentCodingQuestion,
     browserSupportsSpeechRecognition,
     isListening,
@@ -49,15 +50,10 @@ const InterviewPage = () => {
   useEffect(() => {
     const checkBackendStatus = async () => {
       try {
-        const response = await fetch("/api/health");
-        if (response.ok) {
-          const data = await response.json();
-          setBackendReady(true);
-          setApiKeyConfigured(data.api_key_configured);
-        } else {
-          setBackendReady(false);
-          setApiKeyConfigured(false);
-        }
+        // Using backendService instance now
+        const health = await backendService.healthCheck();
+        setBackendReady(health.status === "ok");
+        setApiKeyConfigured(health.api_key_configured || false);
       } catch (error) {
         console.error("Backend connection error:", error);
         setBackendReady(false);
@@ -81,9 +77,6 @@ const InterviewPage = () => {
     setApiKeyConfigured(true);
   };
 
-  /**
-   * Start interview and preserve live video
-   */
   const handleStartInterview = async () => {
     if (!mediaStream) {
       if (requestMediaPermissions) {
@@ -136,6 +129,15 @@ const InterviewPage = () => {
 
     const clonedStream = streamToUse.clone();
     await startInterview(clonedStream);
+  };
+
+  const handleEndInterview = () => {
+    // Convert Transcript[] to TranscriptItem[]
+    const formattedTranscript: TranscriptItem[] = transcript.map(item => ({
+      ...item,
+      timestamp: item.timestamp.toISOString(),
+    }));
+    endInterview(formattedTranscript);
   };
 
   if (backendReady === true && apiKeyConfigured === false) {
@@ -196,7 +198,7 @@ const InterviewPage = () => {
         </div>
 
         <InterviewHeader
-          onEndInterview={() => endInterview(transcript)} // Pass transcript here
+          onEndInterview={handleEndInterview} // Use the new handler
           isRecording={isRecording}
           isProcessingAI={isProcessingAI}
         />
@@ -248,7 +250,7 @@ const InterviewPage = () => {
             />
 
             <InterviewTabs
-              transcript={transcript}
+              transcript={transcript} // This remains Transcript[] as InterviewTabs expects it
               codingQuestion={currentCodingQuestion}
             />
           </motion.div>
