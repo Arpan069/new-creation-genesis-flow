@@ -6,15 +6,45 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+# Initialize the API key at the module level
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    openai.api_key = OPENAI_API_KEY
+else:
+    print("Warning: OPENAI_API_KEY not found in environment variables. OpenAI API calls will fail.")
+    openai.api_key = None # Explicitly set to None if not found
+
+def is_api_key_configured() -> bool:
+    """Checks if the OpenAI API key is configured."""
+    return bool(openai.api_key)
+
+def get_openai_client():
+    """
+    Returns an initialized OpenAI client if the API key is configured.
+    Returns None otherwise.
+    """
+    if not is_api_key_configured():
+        print("Error: OpenAI API key not configured. Cannot create client.")
+        return None
+    return openai.OpenAI()
 
 def analyze_transcript_with_openai(transcript_text: str):
     """
     Analyzes an interview transcript using OpenAI GPT model.
     Returns a dictionary with scores and justifications.
     """
-    if not openai.api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables.")
+    client = get_openai_client()
+    if not client:
+        # If client is None, it means API key is not configured.
+        # Return an error structure or raise an exception.
+        # For consistency with existing error handling in the function,
+        # let's craft an error response.
+        return {
+            "language_score": { "score": 0, "justification": "OpenAI API key not configured." },
+            "personality_score": { "score": 0, "justification": "OpenAI API key not configured." },
+            "accuracy_score": { "score": 0, "justification": "OpenAI API key not configured." },
+            "overall_summary": "Could not analyze transcript because OpenAI API key is not configured."
+        }
 
     prompt = f"""
 You are an expert interview evaluator. Analyze the following interview transcript.
@@ -41,7 +71,6 @@ Transcript:
 Ensure the output is a single valid JSON object and nothing else.
 """
     try:
-        client = openai.OpenAI() # Initialize client
         response = client.chat.completions.create(
             model="gpt-4o-mini", # Using a cost-effective and capable model
             messages=[
@@ -72,8 +101,14 @@ Ensure the output is a single valid JSON object and nothing else.
     except Exception as e:
         print(f"Error analyzing transcript with OpenAI: {e}")
         # Consider re-raising or returning a specific error structure
-        raise e # Or return a default error object as above
+        # If the client itself was None (e.g. API key issue not caught by get_openai_client initial check)
+        # this generic exception might catch it.
+        return {
+            "language_score": { "score": 0, "justification": f"OpenAI API Error: {str(e)}" },
+            "personality_score": { "score": 0, "justification": f"OpenAI API Error: {str(e)}" },
+            "accuracy_score": { "score": 0, "justification": f"OpenAI API Error: {str(e)}" },
+            "overall_summary": f"Could not analyze transcript due to an OpenAI API error: {str(e)}"
+        }
 
 # Placeholder for other OpenAI client functions if they exist in this file
 # ... keep existing code (if any other functions are in this file)
-
