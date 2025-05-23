@@ -28,6 +28,36 @@ def get_openai_client():
         return None
     return openai.OpenAI()
 
+def set_api_key(api_key_value: str):
+    """
+    Sets the OpenAI API key and returns an initialized OpenAI client.
+    Raises ValueError if the API key is empty.
+    """
+    if not api_key_value:
+        # This case should ideally be caught by the route before calling this.
+        # However, adding a check here for robustness.
+        print("Error: Attempted to set an empty API key.")
+        # The route expects a client to be returned to make a test call,
+        # so returning None or raising an exception needs to be handled by the caller.
+        # For now, let's update the key and let the OpenAI client instantiation fail
+        # or the subsequent test call fail, which is more aligned with current error handling.
+        # Alternatively, we could raise an immediate error.
+        # For consistency with `get_openai_client` which can return None,
+        # let's consider what the caller in `auth.py` expects.
+        # The caller `client = set_api_key(...)` then `client.chat.completions.create`.
+        # So, it must return a client object.
+        raise ValueError("API key cannot be empty.")
+
+    openai.api_key = api_key_value
+    # Optionally, update the global OPENAI_API_KEY if it's meant to be dynamically changed
+    # For now, just setting openai.api_key is the direct way the library uses it.
+    # global OPENAI_API_KEY
+    # OPENAI_API_KEY = api_key_value
+    
+    # The route expects this function to return a client instance
+    # so it can immediately test it.
+    return openai.OpenAI()
+
 def analyze_transcript_with_openai(transcript_text: str):
     """
     Analyzes an interview transcript using OpenAI GPT model.
@@ -112,3 +142,4 @@ Ensure the output is a single valid JSON object and nothing else.
 
 # Placeholder for other OpenAI client functions if they exist in this file
 # ... keep existing code (if any other functions are in this file)
+
