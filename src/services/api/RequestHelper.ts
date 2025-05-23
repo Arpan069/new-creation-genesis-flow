@@ -1,22 +1,33 @@
 
-import { BackendError } from './BackendError';
-import { BACKEND_CONFIG } from '@/config/backendConfig';
+import { BackendError } from './BackendError'; // Assuming BackendError is in the same directory
+
+// Define a retry configuration interface
+interface RetryConfig {
+  maxAttempts: number;
+  initialDelay: number;
+  maxDelay: number;
+  backoffFactor: number;
+}
 
 export class RequestHelper {
   private baseUrl: string;
   private debug: boolean;
-  private maxAttempts: number;
-  private initialDelay: number;
-  private maxDelay: number;
-  private backoffFactor: number;
+  private retryConfig: RetryConfig = {
+    maxAttempts: 3,
+    initialDelay: 1000, // 1 second
+    maxDelay: 10000, // 10 seconds
+    backoffFactor: 2,
+  };
 
   constructor(baseUrl: string, debug: boolean = false) {
-    this.baseUrl = baseUrl;
+    let absoluteBaseUrl = baseUrl;
+    // Ensure baseUrl is absolute
+    if (typeof window !== 'undefined' && baseUrl.startsWith('/') && !baseUrl.startsWith('//')) {
+      absoluteBaseUrl = `${window.location.origin}${baseUrl}`;
+    }
+    // Remove trailing slash if present
+    this.baseUrl = absoluteBaseUrl.endsWith('/') ? absoluteBaseUrl.slice(0, -1) : absoluteBaseUrl;
     this.debug = debug;
-    this.maxAttempts = BACKEND_CONFIG.retry?.maxAttempts || 3;
-    this.initialDelay = BACKEND_CONFIG.retry?.initialDelay || 1000;
-    this.maxDelay = BACKEND_CONFIG.retry?.maxDelay || 5000;
-    this.backoffFactor = BACKEND_CONFIG.retry?.backoffFactor || 2;
   }
 
   private log(...args: any[]): void {
@@ -25,160 +36,164 @@ export class RequestHelper {
     }
   }
 
-  /**
-   * Fetch with exponential backoff retry
-   */
+  private getAuthToken(): string | null {
+    return localStorage.getItem('access_token');
+  }
+
+  private async refreshToken(): Promise<string | null> {
+    // Placeholder for actual refresh token logic
+    // This should call your backend's refresh token endpoint
+    this.log('Attempting to refresh token...');
+    try {
+      // Example: const response = await fetch(`${this.baseUrl}/auth/refresh`, { method: 'POST', body: JSON.stringify({ refresh_token: localStorage.getItem('refresh_token') }), headers: {'Content-Type': 'application/json'} });
+      // const data = await response.json();
+      // if (response.ok && data.access_token) {
+      //   localStorage.setItem('access_token', data.access_token);
+      //   return data.access_token;
+      // }
+      // For now, assume refresh fails or is not implemented client-side directly here
+      console.warn('Token refresh logic not fully implemented in RequestHelper.');
+      return null;
+    } catch (error) {
+      this.log('Token refresh failed:', error);
+      return null;
+    }
+  }
+
   async fetchWithRetry(
     url: string,
     options: RequestInit,
-    attempt: number = 1
-  ): Promise<Response> {
-    try {
-      const response = await fetch(url, options);
-      
-      if (!response.ok && response.status >= 500 && attempt < this.maxAttempts) {
-        const delay = Math.min(
-          this.initialDelay * Math.pow(this.backoffFactor, attempt - 1),
-          this.maxDelay
-        );
-        
-        if (this.debug) {
-          console.info(`[RequestHelper] Request to ${url} failed with status ${response.status}. Retrying in ${delay}ms. Attempt ${attempt}/${this.maxAttempts}`);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return this.fetchWithRetry(url, options, attempt + 1);
-      }
-      
-      return response;
-    } catch (error) {
-      if (this.debug) {
-        console.info(`[RequestHelper] Attempt ${attempt} failed for ${options.method || 'GET'} ${url}:`, error);
-      }
-      
-      if (attempt < this.maxAttempts) {
-        const delay = Math.min(
-          this.initialDelay * Math.pow(this.backoffFactor, attempt - 1),
-          this.maxDelay
-        );
-        
-        if (this.debug) {
-          console.info(`[RequestHelper] Retrying in ${delay}ms. Attempt ${attempt + 1}/${this.maxAttempts}`);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return this.fetchWithRetry(url, options, attempt + 1);
-      }
-      
-      throw new BackendError(
-        `Failed after ${attempt} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        undefined, // status code not directly available here from a network error
-        attempt
-      );
-    }
-  }
+    authenticate: boolean = false,
+    isFormData: boolean = false,
+    responseType: 'json' | 'blob' = 'json'
+  ): Promise<any> {
+    let attempt = 1;
+    let delay = this.retryConfig.initialDelay;
 
-  private async _handleResponse<T>(response: Response, responseType: 'json' | 'blob' | 'text' = 'json'): Promise<T> {
-    if (!response.ok) {
-      let errorData;
+    // Initialize headers if not present
+    options.headers = options.headers || {};
+
+    const attemptRequest = async (isRetry: boolean = false): Promise<any> => {
+      if (authenticate) {
+        let token = this.getAuthToken();
+        if (isRetry && !token) { // If it's a retry for auth error, try refreshing token
+          token = await this.refreshToken();
+        }
+        if (token) {
+          (options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+        } else if (authenticate) { // If authentication is required and no token, fail fast for subsequent retries post-refresh attempt.
+          throw new BackendError('No authentication token available.', 401, attempt);
+        }
+      }
+      
+      if (!isFormData && options.body) {
+        (options.headers as Record<string, string>)['Content-Type'] = 'application/json';
+      } else if (isFormData) {
+        // For FormData, browser sets Content-Type automatically with boundary
+        delete (options.headers as Record<string,string>)['Content-Type'];
+      }
+
+
+      this.log(`Attempt ${attempt}/${this.retryConfig.maxAttempts}: ${options.method} ${url}`);
+      if (options.body && !isFormData) this.log('Request body:', options.body);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      options.signal = controller.signal;
+
       try {
-        errorData = await response.json();
-      } catch (e) {
-        errorData = { message: response.statusText };
+        const response = await fetch(url, options);
+        clearTimeout(timeoutId);
+
+        if (response.status === 401 && authenticate && attempt < this.retryConfig.maxAttempts) {
+          this.log('Received 401, attempting to refresh token and retry.');
+          const newToken = await this.refreshToken();
+          if (newToken) {
+            attempt++; // Count this as an attempt as we are retrying with a new token
+            return attemptRequest(true); // Retry with new token
+          } else {
+            // If token refresh fails, proceed to throw error
+             const errorData = await response.json().catch(() => ({ message: `HTTP error! Status: ${response.status}` }));
+             throw new BackendError(errorData.error || errorData.message || `Request failed with status ${response.status}`, response.status, attempt);
+          }
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: `HTTP error! Status: ${response.status}` }));
+          throw new BackendError(errorData.error || errorData.message || `Request failed with status ${response.status}`, response.status, attempt);
+        }
+        
+        if (responseType === 'blob') {
+          return response.blob();
+        }
+        // Check if response is empty before trying to parse JSON
+        const responseText = await response.text();
+        if (!responseText) {
+          return undefined; 
+        }
+        return JSON.parse(responseText);
+
+      } catch (error) {
+        clearTimeout(timeoutId);
+        this.log(`Attempt ${attempt} failed for ${url}:`, error);
+        if (error instanceof BackendError && (error.status === 401 || error.status === 403 || error.status === 404)) {
+          // Don't retry for these specific auth/not found errors after initial handling
+          throw error;
+        }
+        if (attempt >= this.retryConfig.maxAttempts) {
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            throw new BackendError(`Request timeout for ${url}`, 408, attempt);
+          }
+          throw error;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay = Math.min(delay * this.retryConfig.backoffFactor, this.retryConfig.maxDelay);
+        attempt++;
+        return attemptRequest(error instanceof BackendError && error.status === 401); // Pass true if it was an auth error to trigger refresh logic
       }
-      throw new BackendError(errorData.msg || errorData.message || `HTTP error! status: ${response.status}`, response.status);
-    }
-
-    if (responseType === 'blob') {
-      return response.blob() as Promise<T>;
-    }
-    if (responseType === 'text') {
-      return response.text() as Promise<T>;
-    }
-    // Default to JSON
-    // Handle cases where response might be empty for 204 No Content etc.
-    const text = await response.text();
-    if (!text) {
-        return undefined as T; // Or handle as appropriate for your app, e.g. {} as T for some scenarios
-    }
-    try {
-        return JSON.parse(text) as T;
-    } catch (e) {
-        console.error("Failed to parse JSON response:", text);
-        throw new BackendError("Failed to parse JSON response", response.status);
-    }
-  }
-  
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('access_token');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+    return attemptRequest();
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string>, requiresAuth: boolean = false, responseType: 'json' | 'blob' | 'text' = 'json'): Promise<T> {
-    const url = new URL(`${this.baseUrl}${endpoint}`);
+  private constructFullUrl(endpoint: string): string {
+    // Ensure endpoint starts with a slash if it doesn't already,
+    // and that there's no double slash between baseUrl and endpoint.
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${this.baseUrl}${normalizedEndpoint}`;
+  }
+
+  async get<T>(endpoint: string, params?: Record<string, string | number>, authenticate: boolean = false): Promise<T> {
+    let requestUrl = this.constructFullUrl(endpoint);
     if (params) {
-      Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+      const queryParams = new URLSearchParams(params as Record<string, string>).toString();
+      requestUrl = `${requestUrl}?${queryParams}`;
     }
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (requiresAuth) {
-      Object.assign(headers, this.getAuthHeaders());
-    }
-
-    this.log(`GET ${url.toString()}`);
-    const response = await this.fetchWithRetry(url.toString(), { method: 'GET', headers });
-    return this._handleResponse<T>(response, responseType);
+    return this.fetchWithRetry(requestUrl, { method: 'GET' }, authenticate) as Promise<T>;
   }
 
-  async post<T>(endpoint: string, data: any, requiresAuth: boolean = false, isFormData: boolean = false, responseType: 'json' | 'blob' | 'text' = 'json'): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const headers: HeadersInit = {};
-
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
-     if (requiresAuth) {
-      Object.assign(headers, this.getAuthHeaders());
-    }
-
-    const body = isFormData ? (data as FormData) : JSON.stringify(data);
-    
-    this.log(`POST ${url} with data:`, isFormData ? '[FormData]' : data);
-    const response = await this.fetchWithRetry(url, { method: 'POST', headers, body });
-    return this._handleResponse<T>(response, responseType);
+  async post<T>(endpoint: string, data: any, authenticate: boolean = false, isFormData: boolean = false, responseType: 'json' | 'blob' = 'json'): Promise<T> {
+    const requestUrl = this.constructFullUrl(endpoint);
+    return this.fetchWithRetry(
+      requestUrl,
+      {
+        method: 'POST',
+        body: isFormData ? data : JSON.stringify(data),
+      },
+      authenticate,
+      isFormData,
+      responseType
+    ) as Promise<T>;
   }
 
-  async put<T>(endpoint: string, data: any, requiresAuth: boolean = false, isFormData: boolean = false, responseType: 'json' | 'blob' | 'text' = 'json'): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const headers: HeadersInit = {};
-
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
-     if (requiresAuth) {
-      Object.assign(headers, this.getAuthHeaders());
-    }
-
-    const body = isFormData ? (data as FormData) : JSON.stringify(data);
-
-    this.log(`PUT ${url} with data:`, data);
-    const response = await this.fetchWithRetry(url, { method: 'PUT', headers, body });
-    return this._handleResponse<T>(response, responseType);
+  async put<T>(endpoint: string, data: any, authenticate: boolean = false): Promise<T> {
+    const requestUrl = this.constructFullUrl(endpoint);
+    return this.fetchWithRetry(requestUrl, { method: 'PUT', body: JSON.stringify(data) }, authenticate) as Promise<T>;
   }
 
-  async delete<T>(endpoint: string, requiresAuth: boolean = false, responseType: 'json' | 'blob' | 'text' = 'json'): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-    };
-    if (requiresAuth) {
-      Object.assign(headers, this.getAuthHeaders());
-    }
-    
-    this.log(`DELETE ${url}`);
-    const response = await this.fetchWithRetry(url, { method: 'DELETE', headers });
-    return this._handleResponse<T>(response, responseType);
+  async delete<T>(endpoint: string, authenticate: boolean = false): Promise<T> {
+    const requestUrl = this.constructFullUrl(endpoint);
+    return this.fetchWithRetry(requestUrl, { method: 'DELETE' }, authenticate) as Promise<T>;
   }
 }
+
