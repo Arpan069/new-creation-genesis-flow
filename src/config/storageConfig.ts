@@ -4,5 +4,6 @@
  */
 export const VIDEO_STORAGE_CONFIG = {
   // Change this path to your preferred storage location
-  storagePath: "interview_recordings",
+  storagePath: "Interview_videos", // Updated path
 };
+

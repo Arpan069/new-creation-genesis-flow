@@ -13,13 +13,14 @@ from flask_migrate import Migrate
 
 # Import models and database
 from models.user import db
-from models import *
+from models import * # Ensure Interview model is imported
 
 # Import modules
 from routes.transcription import transcription_routes
 from routes.response_generation import response_routes
 from routes.text_to_speech import tts_routes
 from routes.auth import auth_routes
+from routes.interview_processing import interview_processing_routes # New import
 
 # Load environment variables from .env file (if available)
 load_dotenv()
@@ -38,17 +39,18 @@ app.config['JWT_REFRESH_TOKEN_EXPIRES'] = 2592000  # 30 days
 
 # Initialize extensions
 db.init_app(app)
-migrate = Migrate(app, db)
+migrate = Migrate(app, db) # Ensure Migrate is configured
 jwt = JWTManager(app)
 
 # Configure CORS to allow requests from any origin during development
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/*": {"origins": "*"}}) # Ensure your frontend origin is allowed in prod
 
 # Register blueprints for different endpoint groups
 app.register_blueprint(auth_routes)
 app.register_blueprint(transcription_routes)
 app.register_blueprint(response_routes)
 app.register_blueprint(tts_routes)
+app.register_blueprint(interview_processing_routes) # Register new blueprint
 
 # Create tables on startup if they don't exist
 with app.app_context():
@@ -57,3 +59,4 @@ with app.app_context():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+

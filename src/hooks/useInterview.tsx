@@ -108,7 +108,7 @@ const useInterview = (isSystemAudioOn: boolean) => {
   
   // Use interview actions hook
   const {
-    endInterview,
+    endInterview: endInterviewAction,
     speakFirstQuestion
   } = useInterviewActions(
     isSystemAudioOn,
@@ -201,7 +201,7 @@ const useInterview = (isSystemAudioOn: boolean) => {
     currentQuestion,
     transcript,
     startInterview,
-    endInterview,
+    endInterview: endInterviewAction,
     currentCodingQuestion,
     showCodingChallenge,
     videoUrl,

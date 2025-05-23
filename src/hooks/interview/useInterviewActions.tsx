@@ -3,6 +3,15 @@ import { useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import { videoRecorder } from "@/utils/videoRecording";
 import { speakText } from "@/utils/speechUtils";
+import { backendService } from "@/services/api/BackendService"; // Import backendService
+import type { TranscriptItem } from "@/types/interview"; // Import TranscriptItem
+
+/**
+ * Helper function to format transcript items into a single string.
+ */
+function formatTranscriptToString(transcriptItems: TranscriptItem[]): string {
+  return transcriptItems.map(item => `${item.speaker} (${item.timestamp}): ${item.text}`).join('\n\n');
+}
 
 /**
  * Custom hook for managing interview actions
@@ -18,39 +27,75 @@ export function useInterviewActions(
   deactivateSpeechRecognition: () => void
 ) {
   /**
-   * End the interview and save recording
+   * End the interview, save recording, and process details.
+   * @param currentTranscript The current transcript items.
    */
-  const endInterview = useCallback(async () => {
+  const endInterview = useCallback(async (currentTranscript: TranscriptItem[]) => {
     try {
       // Stop speech recognition
       stopListening();
       deactivateSpeechRecognition();
       
+      let videoUrl: string | null = null;
+
       if (isRecording) {
         // Stop recording and get the blob
         const recordedBlob = await videoRecorder.stopRecording();
         setIsRecording(false);
         
         // Save the recording and get the URL
-        const url = await videoRecorder.saveRecording(recordedBlob);
-        setVideoUrl(url);
+        // videoStorage.saveRecording will use the path from VIDEO_STORAGE_CONFIG
+        videoUrl = await videoRecorder.saveRecording(recordedBlob);
+        setVideoUrl(videoUrl); // Update local state if needed for UI
         
         toast({
-          title: "Interview completed",
-          description: "Recording saved successfully",
+          title: "Interview recording saved locally.",
+          description: "Now processing and saving details to server...",
         });
       }
       
-      // Navigate back to dashboard
+      if (videoUrl && currentTranscript && currentTranscript.length > 0) {
+        const transcriptText = formatTranscriptToString(currentTranscript);
+        try {
+          // Call backend to save details and trigger analysis
+          // Title can be more dynamic if needed, e.g., based on user or first question
+          const interviewTitle = questions.length > 0 ? `Interview about "${questions[0].substring(0, 50)}..."` : "AI Practice Interview";
+          
+          await backendService.saveCompletedInterview({
+            video_url: videoUrl,
+            transcript_text: transcriptText,
+            title: interviewTitle 
+          });
+          toast({
+            title: "Interview details saved!",
+            description: "Your interview and analysis have been stored.",
+          });
+        } catch (apiError) {
+          console.error("Error saving interview details to backend:", apiError);
+          toast({
+            title: "Server Error",
+            description: "Failed to save interview details to server. Recording saved locally.",
+            variant: "destructive",
+          });
+        }
+      } else if (isRecording) {
+         toast({
+            title: "Notice",
+            description: "No video URL or transcript to save to server. Recording might have failed or transcript empty.",
+            variant: "default",
+          });
+      }
+      
+      // Navigate back to dashboard regardless of backend save success for now
       navigateToDashboard();
     } catch (error) {
       console.error("Error ending interview:", error);
       toast({
         title: "Error",
-        description: "Failed to end interview properly",
+        description: "Failed to end interview properly. Some data may not be saved.",
         variant: "destructive",
       });
-      navigateToDashboard();
+      navigateToDashboard(); // Ensure navigation even on error
     }
   }, [
     isRecording,
@@ -58,7 +103,9 @@ export function useInterviewActions(
     stopListening, 
     deactivateSpeechRecognition,
     setIsRecording,
-    setVideoUrl
+    setVideoUrl,
+    questions, // Added questions for title generation
+    isSystemAudioOn // isSystemAudioOn was a param but not used in endInterview, kept for consistency with hook params
   ]);
 
   /**
@@ -68,13 +115,17 @@ export function useInterviewActions(
     // Delay speaking slightly to ensure UI updates first
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        // Simulate AI speaking the question
-        speakText(questions[0], isSystemAudioOn)
-          .then(() => resolve())
-          .catch(err => {
-            console.error("Error during AI speech:", err);
-            resolve(); // Still resolve even if speech fails
-          });
+        if (questions.length > 0) {
+            speakText(questions[0], isSystemAudioOn)
+            .then(() => resolve())
+            .catch(err => {
+                console.error("Error during AI speech:", err);
+                resolve(); // Still resolve even if speech fails
+            });
+        } else {
+            console.warn("No questions to speak for speakFirstQuestion.");
+            resolve();
+        }
       }, 500);
     });
   }, [questions, isSystemAudioOn]);
@@ -84,3 +135,4 @@ export function useInterviewActions(
     speakFirstQuestion
   };
 }
+
