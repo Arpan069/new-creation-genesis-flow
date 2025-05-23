@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ApiKeySetup } from "@/components/interview/ApiKeySetup";
 import type { TranscriptItem } from "@/types/interview"; 
 import type { Transcript } from "@/types/transcript"; // To properly type the state
+import { backendService } from "@/services/api/BackendService"; // Added this import
 
 const InterviewPage = () => {
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
@@ -36,9 +37,9 @@ const InterviewPage = () => {
     isRecording,
     isProcessingAI,
     currentQuestion,
-    transcript, // This is Transcript[] from useTranscript
+    transcript, 
     startInterview,
-    endInterview, // This expects TranscriptItem[]
+    endInterview,
     currentCodingQuestion,
     browserSupportsSpeechRecognition,
     isListening,
@@ -135,7 +136,7 @@ const InterviewPage = () => {
     // Convert Transcript[] to TranscriptItem[]
     const formattedTranscript: TranscriptItem[] = transcript.map(item => ({
       ...item,
-      timestamp: item.timestamp.toISOString(),
+      timestamp: item.timestamp.toISOString(), 
     }));
     endInterview(formattedTranscript);
   };
@@ -198,7 +199,7 @@ const InterviewPage = () => {
         </div>
 
         <InterviewHeader
-          onEndInterview={handleEndInterview} // Use the new handler
+          onEndInterview={handleEndInterview} 
           isRecording={isRecording}
           isProcessingAI={isProcessingAI}
         />
@@ -250,7 +251,7 @@ const InterviewPage = () => {
             />
 
             <InterviewTabs
-              transcript={transcript} // This remains Transcript[] as InterviewTabs expects it
+              transcript={transcript} 
               codingQuestion={currentCodingQuestion}
             />
           </motion.div>
