@@ -1,8 +1,9 @@
+
 import { RequestHelper } from './RequestHelper';
 import { BackendError } from './BackendError';
-import type { TranscriptionOptions, TranscriptionResult, TextToSpeechOptions, ConversationOptions } from '../OpenAIServiceTypes'; // Assuming these types are correctly defined
-import type { UserCredentials, UserProfile, OTPVerificationResult } from '@/types/auth'; // Assuming User types
-import type { InterviewDetail, TranscriptItem } from '@/types/interview'; // For return type, if needed
+import type { TranscriptionOptions, TranscriptionResult, TextToSpeechOptions, ConversationOptions } from '../OpenAIServiceTypes';
+import type { UserCredentials, UserProfile, OTPVerificationResult } from '@/types/auth'; // Now this should be found
+import type { InterviewDetail } from '@/types/interview';
 
 // Base URL for the backend API
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -17,7 +18,7 @@ export class BackendService {
   private requestHelper: RequestHelper;
 
   constructor() {
-    this.requestHelper = new RequestHelper(API_BASE_URL);
+    this.requestHelper = new RequestHelper(API_BASE_URL, import.meta.env.DEV); // Pass base URL and debug flag
   }
 
   /**
@@ -25,15 +26,14 @@ export class BackendService {
    */
   async healthCheck(): Promise<{ status: string; api_key_configured?: boolean }> {
     try {
+      // Use the get method from requestHelper
       const response = await this.requestHelper.get<{ status: string; api_key_configured?: boolean }>('/health');
       return response;
     } catch (error) {
       console.error("Health check failed:", error);
       if (error instanceof BackendError && error.status === 404) {
-        // Treat 404 as backend not available
         return { status: "error", api_key_configured: false };
       }
-      // For other errors, rethrow or handle as "error"
       return { status: "error", api_key_configured: false };
     }
   }
@@ -52,7 +52,14 @@ export class BackendService {
   }
 
   public async login(credentials: UserCredentials): Promise<{ access_token: string; refresh_token: string; user: UserProfile }> {
-    return this.requestHelper.post<{ access_token: string; refresh_token: string; user: UserProfile }>('/auth/login', credentials);
+    const response = await this.requestHelper.post<{ access_token: string; refresh_token: string; user: UserProfile }>('/auth/login', credentials);
+    if (response.access_token) {
+      localStorage.setItem('access_token', response.access_token);
+    }
+    if (response.refresh_token) {
+      localStorage.setItem('refresh_token', response.refresh_token);
+    }
+    return response;
   }
   
   public async verifyOTP(email: string, otp: string): Promise<OTPVerificationResult> {
@@ -60,25 +67,23 @@ export class BackendService {
   }
 
   public async getUserProfile(): Promise<UserProfile> {
-    return this.requestHelper.get<UserProfile>('/auth/profile', {}, true); // Assuming requires auth
+    return this.requestHelper.get<UserProfile>('/auth/profile', {}, true); 
   }
 
   public async updateUserProfile(profileData: Partial<UserProfile>): Promise<UserProfile> {
-    return this.requestHelper.put<UserProfile>('/auth/profile', profileData, true); // Assuming requires auth
+    return this.requestHelper.put<UserProfile>('/auth/profile', profileData, true);
   }
-
 
   /**
    * Transcribe audio content
    */
   async transcribe(audioBlob: Blob, options: TranscriptionOptions = {}): Promise<TranscriptionResult> {
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('file', audioBlob, 'audio.webm'); // Ensure filename is appropriate
     formData.append('prompt', options.prompt || '');
     formData.append('language', options.language || 'en');
-    // Add other options as needed
     
-    return this.requestHelper.post<TranscriptionResult>('/transcribe', formData, true, true); // True for auth, true for FormData
+    return this.requestHelper.post<TranscriptionResult>('/transcribe', formData, true, true); 
   }
 
   /**
@@ -99,14 +104,15 @@ export class BackendService {
    */
   async textToSpeech(text: string, options: TextToSpeechOptions = {}): Promise<Blob> {
     const payload = { text, ...options };
-    return this.requestHelper.post<Blob>('/text-to-speech', payload, true, false, 'blob'); // True for auth, false for FormData, 'blob' for responseType
+    // Corrected: responseType should be 'blob'
+    return this.requestHelper.post<Blob>('/text-to-speech', payload, true, false, 'blob'); 
   }
 
   /**
    * Save completed interview details (video URL, transcript, trigger analysis)
    */
-  async saveCompletedInterview(payload: CompleteInterviewPayload): Promise<InterviewDetail> { // Assuming InterviewDetail is the expected return type
-    return this.requestHelper.post<InterviewDetail>('/interviews/complete', payload, true); // Requires auth
+  async saveCompletedInterview(payload: CompleteInterviewPayload): Promise<InterviewDetail> {
+    return this.requestHelper.post<InterviewDetail>('/interviews/complete', payload, true);
   }
   
    /**
@@ -118,6 +124,20 @@ export class BackendService {
     } catch (error) {
       console.error("Failed to update Heygen API key:", error);
       throw error;
+    }
+  }
+
+  public async logout(): Promise<void> {
+    // Inform the backend if necessary (e.g., to invalidate tokens)
+    // For now, just clear local storage
+    try {
+        await this.requestHelper.post<void>('/auth/logout', {}, true);
+    } catch (error) {
+        console.warn("Failed to notify backend of logout, or no logout endpoint configured:", error);
+    } finally {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        // Optionally, redirect or update UI state
     }
   }
 }

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import EnhancedBackground from "@/components/EnhancedBackground";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ApiKeySetup } from "@/components/interview/ApiKeySetup";
+import type { TranscriptItem } from "@/types/interview"; // Added import for TranscriptItem
 
 const InterviewPage = () => {
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
@@ -34,9 +35,9 @@ const InterviewPage = () => {
     isRecording,
     isProcessingAI,
     currentQuestion,
-    transcript,
+    transcript, // transcript is available here
     startInterview,
-    endInterview,
+    endInterview, // endInterview expects currentTranscript
     currentCodingQuestion,
     browserSupportsSpeechRecognition,
     isListening,
@@ -94,23 +95,46 @@ const InterviewPage = () => {
         }
       }
 
-      if (!mediaStream) {
-        console.error("Media stream unavailable.");
-        return;
+      // Check again if mediaStream became available
+      // It's possible requestMediaPermissions updates it asynchronously
+      // This check is a bit redundant if useInterviewMedia guarantees update, but safe
+      if (!mediaStream && !videoRef.current?.srcObject) {
+         console.error("Media stream unavailable even after permission request.");
+         // Try to get it one more time if not available - defensive
+         if (requestMediaPermissions) await requestMediaPermissions();
+         if(!mediaStream && !videoRef.current?.srcObject) {
+            console.error("Media stream still unavailable.");
+            return;
+         }
       }
     }
 
-    // Re-assign stream to video tag before recording
-    if (videoRef.current && mediaStream) {
-      videoRef.current.srcObject = mediaStream;
-      await videoRef.current.play();
+    // Ensure mediaStream is used if available, otherwise fallback to videoRef.current.srcObject if it exists
+    const streamToUse = mediaStream || (videoRef.current?.srcObject as MediaStream | null);
+
+    if (!streamToUse) {
+      console.error("No media stream available to start interview.");
+      return;
     }
+    
+    // Re-assign stream to video tag before recording
+    if (videoRef.current && streamToUse && videoRef.current.srcObject !== streamToUse) {
+      videoRef.current.srcObject = streamToUse;
+      // Ensure play is called if srcObject changes, especially if autoplay is not reliable
+      try {
+        await videoRef.current.play();
+      } catch(playError){
+        console.warn("Error trying to play video after re-assigning srcObject:", playError);
+        // This can happen if the user hasn't interacted with the page yet.
+      }
+    }
+
 
     if (!browserSupportsSpeechRecognition) {
       console.warn("Speech recognition may not work in this browser.");
     }
 
-    const clonedStream = mediaStream.clone();
+    const clonedStream = streamToUse.clone();
     await startInterview(clonedStream);
   };
 
@@ -155,7 +179,7 @@ const InterviewPage = () => {
               </div>
               <h2 className="text-xl font-semibold">Backend Connection Error</h2>
               <p className="text-center text-muted-foreground mt-2">
-                Could not connect to the Flask backend. Please make sure it's running at http://localhost:5000.
+                Could not connect to the Flask backend. Please make sure it's running.
               </p>
             </CardContent>
           </Card>
@@ -172,7 +196,7 @@ const InterviewPage = () => {
         </div>
 
         <InterviewHeader
-          onEndInterview={endInterview}
+          onEndInterview={() => endInterview(transcript)} // Pass transcript here
           isRecording={isRecording}
           isProcessingAI={isProcessingAI}
         />
